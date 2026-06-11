@@ -1,0 +1,19 @@
+{
+  "name": "PEA Francky",
+  "short_name": "PEA Francky",
+  "description": "Suivi de portefeuille PEA — ETF EPAB",
+  "start_url": "/pea-tracker/",
+  "scope": "/pea-tracker/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0d14",
+  "theme_color": "#4d7cfe",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
