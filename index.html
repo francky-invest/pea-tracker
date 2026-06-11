@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PEA Francky</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0b0d14; --bg-card: #111520; --bg-elevated: #181c2a; --bg-input: #0f1219;
+      --border: #1e2338; --border-light: #252d47;
+      --accent: #4d7cfe; --accent-dim: rgba(77,124,254,.12); --accent-glow: rgba(77,124,254,.25);
+      --green: #22c55e; --green-dim: rgba(34,197,94,.1);
+      --red: #ef4444; --red-dim: rgba(239,68,68,.1);
+      --gold: #f59e0b; --gold-dim: rgba(245,158,11,.1);
+      --text: #dde1f0; --text-muted: #5b6488; --text-sub: #8a94b8;
+      --radius: 12px; --radius-sm: 8px; --shadow: 0 4px 24px rgba(0,0,0,.4);
+    }
+    html, body { height: 100%; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    #auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(77,124,254,.18), transparent); }
+    .auth-card { width: 380px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 18px; padding: 40px 36px; box-shadow: var(--shadow); }
+    .auth-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; }
+    .auth-logo-icon { width: 38px; height: 38px; background: linear-gradient(135deg, var(--accent), #7c5cfc); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .auth-logo-text { font-size: 20px; font-weight: 700; letter-spacing: -.5px; }
+    .auth-logo-text span { color: var(--accent); }
+    .auth-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .auth-sub { color: var(--text-sub); font-size: 13px; margin-bottom: 28px; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-sub); margin-bottom: 6px; letter-spacing: .04em; text-transform: uppercase; }
+    .field input { width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 11px 14px; color: var(--text); font-size: 14px; font-family: inherit; outline: none; transition: border-color .2s; }
+    .field input:focus { border-color: var(--accent); }
+    .field input::placeholder { color: var(--text-muted); }
+    .auth-error { background: var(--red-dim); border: 1px solid rgba(239,68,68,.3); color: var(--red); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .btn-primary { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); padding: 12px; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; transition: opacity .2s, transform .1s; margin-top: 8px; }
+    .btn-primary:hover { opacity: .88; }
+    .btn-primary:active { transform: scale(.98); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    #app { display: none; height: 100vh; }
+    .shell { display: grid; grid-template-columns: 220px 1fr; height: 100vh; overflow: hidden; }
+    .sidebar { background: var(--bg-card); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px 0; overflow-y: auto; }
+    .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 20px 24px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .brand-icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--accent), #7c5cfc); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .brand-name { font-size: 15px; font-weight: 700; letter-spacing: -.3px; }
+    .brand-name span { color: var(--accent); }
+    .nav-section { padding: 0 12px; flex: 1; }
+    .nav-label { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); padding: 8px 8px 6px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm); color: var(--text-sub); font-size: 13.5px; font-weight: 500; cursor: pointer; transition: background .15s, color .15s; margin-bottom: 2px; user-select: none; }
+    .nav-item:hover { background: var(--bg-elevated); color: var(--text); }
+    .nav-item.active { background: var(--accent-dim); color: var(--accent); }
+    .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+    .sidebar-footer { padding: 16px 20px 0; border-top: 1px solid var(--border); margin-top: 16px; }
+    .user-chip { display: flex; align-items: center; gap: 10px; }
+    .user-avatar { width: 32px; height: 32px; background: linear-gradient(135deg, #4d7cfe, #7c5cfc); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .user-email { font-size: 11px; color: var(--text-sub); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .btn-logout { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 4px; border-radius: 6px; transition: color .15s; }
+    .btn-logout:hover { color: var(--red); }
+    .main { overflow-y: auto; background: var(--bg); }
+    .page-header { padding: 32px 32px 0; }
+    .page-title { font-size: 24px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 4px; }
+    .page-sub { color: var(--text-sub); font-size: 13px; }
+    .page-body { padding: 24px 32px 40px; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .kpi-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); margin-bottom: 10px; }
+    .kpi-value { font-size: 26px; font-weight: 700; letter-spacing: -.5px; color: #fff; }
+    .kpi-sub { font-size: 12px; color: var(--text-sub); margin-top: 4px; }
+    .kpi-card.accent { border-color: var(--accent-dim); background: linear-gradient(135deg, var(--bg-card), rgba(77,124,254,.05)); }
+    .kpi-card.gold { border-color: rgba(245,158,11,.2); }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .card-title { font-size: 15px; font-weight: 600; }
+    .card-sub { font-size: 12px; color: var(--text-sub); }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th { text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+    .data-table td { padding: 12px 12px; border-bottom: 1px solid rgba(255,255,255,.03); color: var(--text); }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: rgba(255,255,255,.02); }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-blue { background: var(--accent-dim); color: var(--accent); }
+    .btn-icon { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px 8px; border-radius: 6px; transition: background .15s, color .15s; font-size: 14px; }
+    .btn-icon:hover { background: var(--red-dim); color: var(--red); }
+    .add-form { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 12px; align-items: end; background: var(--bg-elevated); border: 1px solid var(--border-light); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
+    .form-field label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-sub); margin-bottom: 6px; }
+    .form-field input, .form-field select { width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; color: var(--text); font-size: 13px; font-family: inherit; outline: none; transition: border-color .2s; }
+    .form-field input:focus, .form-field select:focus { border-color: var(--accent); }
+    .btn-add { background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); padding: 9px 18px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; white-space: nowrap; transition: opacity .2s; }
+    .btn-add:hover { opacity: .85; }
+    .btn-add:disabled { opacity: .5; cursor: not-allowed; }
+    .sim-grid { display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
+    .sim-inputs { display: flex; flex-direction: column; gap: 14px; }
+    .range-field label { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+    .range-field label span { color: var(--accent); font-size: 15px; font-weight: 700; text-transform: none; letter-spacing: 0; }
+    .range-field input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+    .sim-result { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+    .result-item { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; }
+    .result-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+    .result-value { font-size: 20px; font-weight: 700; color: #fff; }
+    .result-value.green { color: var(--green); }
+    .result-value.gold { color: var(--gold); }
+    .loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 40px; color: var(--text-muted); }
+    .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+    .empty-icon { font-size: 36px; margin-bottom: 12px; }
+    #toast { position: fixed; bottom: 28px; right: 28px; background: var(--bg-elevated); border: 1px solid var(--border-light); border-radius: var(--radius); padding: 14px 20px; font-size: 13px; font-weight: 500; box-shadow: var(--shadow); transform: translateY(80px); opacity: 0; transition: all .3s cubic-bezier(.34,1.56,.64,1); z-index: 1000; max-width: 320px; }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.success { border-color: rgba(34,197,94,.4); color: var(--green); }
+    #toast.error { border-color: rgba(239,68,68,.4); color: var(--red); }
+    @media (max-width: 900px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } .sim-grid { grid-template-columns: 1fr; } .add-form { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">📈</div>
+      <div class="auth-logo-text">PEA <span>Francky</span></div>
+    </div>
+    <div class="auth-title">Bienvenue</div>
+    <div class="auth-sub">Connectez-vous à votre espace investissement</div>
+    <div id="authError" class="auth-error"></div>
+    <div class="field">
+      <label>Adresse e-mail</label>
+      <input type="email" id="loginEmail" autocomplete="email" placeholder="votre@email.com">
+    </div>
+    <div class="field">
+      <label>Mot de passe</label>
+      <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••"
+             onkeydown="if(event.key==='Enter'){triggerLogin()}">
+    </div>
+    <button class="btn-primary" id="btnLogin" type="button" onclick="triggerLogin()">
+      Se connecter
+    </button>
+  </div>
+</div>
+
+<div id="app">
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">📈</div>
+        <div class="brand-name">PEA <span>Francky</span></div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Navigation</div>
+        <div class="nav-item active" id="nav-dashboard" onclick="showSection('dashboard',this)">
+          <span class="nav-icon">🏠</span> Tableau de bord
+        </div>
+        <div class="nav-item" id="nav-pea" onclick="showSection('pea',this)">
+          <span class="nav-icon">💼</span> Mon PEA
+        </div>
+        <div class="nav-item" id="nav-simulator" onclick="showSection('simulator',this)">
+          <span class="nav-icon">🧮</span> Simulateur DCA
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="user-avatar" id="userAvatar">F</div>
+          <div class="user-email" id="userEmail">—</div>
+          <button class="btn-logout" onclick="doLogout()" title="Déconnexion">⏻</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- DASHBOARD -->
+      <div id="section-dashboard" class="section active">
+        <div class="page-header">
+          <div class="page-title">Tableau de bord</div>
+          <div class="page-sub" id="dashDate">—</div>
+        </div>
+        <div class="page-body">
+          <div class="kpi-grid">
+            <div class="kpi-card accent">
+              <div class="kpi-label">Total investi</div>
+              <div class="kpi-value" id="kpiTotal">—</div>
+              <div class="kpi-sub">Montant cumulé</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Nb d'achats</div>
+              <div class="kpi-value" id="kpiCount">—</div>
+              <div class="kpi-sub">Opérations EPAB</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Parts achetées</div>
+              <div class="kpi-value" id="kpiShares">—</div>
+              <div class="kpi-sub">Unités EPAB.PA</div>
+            </div>
+            <div class="kpi-card gold">
+              <div class="kpi-label">Prix moyen</div>
+              <div class="kpi-value" id="kpiAvg">—</div>
+              <div class="kpi-sub">€ / part EPAB</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Évolution des investissements</div>
+                <div class="card-sub">Montant cumulé dans le temps</div>
+              </div>
+            </div>
+            <canvas id="chartEvolution" height="120"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Derniers achats</div></div>
+            <div id="recentContainer"><div class="loading"><div class="spinner"></div> Chargement…</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MON PEA -->
+      <div id="section-pea" class="section">
+        <div class="page-header">
+          <div class="page-title">Mon PEA</div>
+          <div class="page-sub">ETF Amundi S&P Eurozone Climate — EPAB.PA (LU2195226068)</div>
+        </div>
+        <div class="page-body">
+          <div class="add-form">
+            <div class="form-field">
+              <label>Date</label>
+              <input type="date" id="fDate">
+            </div>
+            <div class="form-field">
+              <label>Montant (€)</label>
+              <input type="number" id="fAmount" placeholder="40" min="1" step="0.01">
+            </div>
+            <div class="form-field">
+              <label>Nb de parts</label>
+              <input type="number" id="fShares" placeholder="0.0000" min="0" step="0.0001">
+            </div>
+            <div class="form-field">
+              <label>Note (optionnel)</label>
+              <input type="text" id="fNote" placeholder="ex: DCA mensuel juin">
+            </div>
+            <button class="btn-add" id="btnAdd" onclick="addPurchase()">+ Ajouter</button>
+          </div>
+          <div class="card" style="padding:0; overflow:hidden;">
+            <div style="padding:20px 24px 16px; border-bottom:1px solid var(--border);">
+              <div class="card-title">Historique des achats</div>
+            </div>
+            <div id="purchasesContainer">
+              <div class="loading"><div class="spinner"></div> Chargement…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SIMULATEUR -->
+      <div id="section-simulator" class="section">
+        <div class="page-header">
+          <div class="page-title">Simulateur DCA</div>
+          <div class="page-sub">Projetez la croissance de votre portefeuille sur le long terme</div>
+        </div>
+        <div class="page-body">
+          <div class="sim-grid">
+            <div class="card">
+              <div class="card-title" style="margin-bottom:20px;">Paramètres</div>
+              <div class="sim-inputs">
+                <div class="range-field">
+                  <label>Apport mensuel <span id="sLabelBudget">100 €</span></label>
+                  <input type="range" id="sBudget" min="10" max="1000" step="10" value="100" oninput="updateSim()">
+                </div>
+                <div class="range-field">
+                  <label>Durée <span id="sLabelDuration">10 ans</span></label>
+                  <input type="range" id="sDuration" min="1" max="30" step="1" value="10" oninput="updateSim()">
+                </div>
+                <div class="range-field">
+                  <label>Rendement annuel <span id="sLabelRate">7 %</span></label>
+                  <input type="range" id="sRate" min="1" max="20" step="0.5" value="7" oninput="updateSim()">
+                </div>
+                <div class="range-field">
+                  <label>Prix actuel ETF (€) <span id="sLabelPrice">50 €</span></label>
+                  <input type="range" id="sPrice" min="1" max="500" step="0.5" value="50" oninput="updateSim()">
+                </div>
+              </div>
+              <div class="sim-result">
+                <div class="result-item">
+                  <div class="result-label">Total investi</div>
+                  <div class="result-value" id="rInvested">—</div>
+                </div>
+                <div class="result-item">
+                  <div class="result-label">Valeur finale</div>
+                  <div class="result-value green" id="rFinal">—</div>
+                </div>
+                <div class="result-item">
+                  <div class="result-label">Plus-value</div>
+                  <div class="result-value gold" id="rGain">—</div>
+                </div>
+                <div class="result-item">
+                  <div class="result-label">Parts acquises</div>
+                  <div class="result-value" id="rShares">—</div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Projection</div>
+                  <div class="card-sub">Valeur du portefeuille dans le temps</div>
+                </div>
+              </div>
+              <canvas id="chartSimulator" height="240"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const SUPABASE_URL      = 'https://xzbhwitgutkwaomjuzcz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6Ymh3aXRndXRrd2FvbWp1emN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDgzNzYsImV4cCI6MjA5NDYyNDM3Nn0.zoUMKjYCRAVgzuEscnhHvzdTbCV8x8ronvERq94tx_A';
+
+const { createClient } = window.supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+});
+
+let currentUser = null;
+let allPurchases = [];
+let chartEvol = null;
+let chartSim  = null;
+
+// AUTH
+async function initAuth() {
+  const { data: { session } } = await db.auth.getSession();
+  if (session?.user) { currentUser = session.user; showApp(); }
+  else { showAuthScreen(); }
+
+  db.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session) { currentUser = session.user; showApp(); }
+    else if (event === 'SIGNED_OUT') { currentUser = null; showAuthScreen(); }
+  });
+}
+
+function triggerLogin() {
+  setTimeout(doLogin, 120);
+}
+
+async function doLogin() {
+  const email    = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl    = document.getElementById('authError');
+  const btn      = document.getElementById('btnLogin');
+  errEl.style.display = 'none';
+  if (!email || !password) {
+    errEl.textContent = 'Veuillez renseigner email et mot de passe.';
+    errEl.style.display = 'block'; return;
+  }
+  btn.disabled = true; btn.textContent = 'Connexion…';
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  if (error) {
+    errEl.textContent = 'Email ou mot de passe incorrect.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Se connecter';
+  }
+}
+
+async function doLogout() { await db.auth.signOut(); }
+
+function showAuthScreen() {
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  const email = currentUser.email;
+  document.getElementById('userEmail').textContent = email;
+  document.getElementById('userAvatar').textContent = email.charAt(0).toUpperCase();
+  const now = new Date();
+  document.getElementById('dashDate').textContent =
+    now.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  updateSim();
+  loadAll();
+  db.channel('purchases-ch')
+    .on('postgres_changes', { event:'*', schema:'public', table:'purchases',
+        filter:`user_id=eq.${currentUser.id}` }, () => loadAll())
+    .subscribe();
+}
+
+// DATA
+async function loadAll() {
+  const { data, error } = await db.from('purchases').select('*').order('date', { ascending: false });
+  if (error) { console.error(error); return; }
+  allPurchases = data || [];
+  renderDashboard();
+  renderPurchasesTable();
+}
+
+// DASHBOARD
+function renderDashboard() {
+  const total  = allPurchases.reduce((s, p) => s + (p.amount || 0), 0);
+  const shares = allPurchases.reduce((s, p) => s + (p.shares || 0), 0);
+  const count  = allPurchases.length;
+  const avg    = shares > 0 ? total / shares : 0;
+  document.getElementById('kpiTotal').textContent  = fmt(total) + ' €';
+  document.getElementById('kpiCount').textContent  = count;
+  document.getElementById('kpiShares').textContent = shares > 0 ? shares.toFixed(4) : '—';
+  document.getElementById('kpiAvg').textContent    = avg > 0 ? fmt(avg) + ' €' : '—';
+  renderEvolutionChart();
+  renderRecent();
+}
+
+function renderEvolutionChart() {
+  const sorted = [...allPurchases].sort((a, b) => a.date.localeCompare(b.date));
+  const labels = []; const values = []; let cum = 0;
+  sorted.forEach(p => { cum += p.amount || 0; labels.push(p.date); values.push(cum); });
+  if (chartEvol) chartEvol.destroy();
+  const ctx = document.getElementById('chartEvolution').getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+  gradient.addColorStop(0, 'rgba(77,124,254,.35)');
+  gradient.addColorStop(1, 'rgba(77,124,254,.0)');
+  chartEvol = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Total investi (€)', data: values, borderColor: '#4d7cfe',
+      backgroundColor: gradient, fill: true, tension: .35,
+      pointRadius: values.length < 20 ? 4 : 0, pointBackgroundColor: '#4d7cfe', borderWidth: 2 }] },
+    options: { responsive: true,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmt(c.parsed.y) + ' €' } } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#5b6488', maxTicksLimit: 8 } },
+        y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#5b6488', callback: v => fmt(v) + ' €' } }
+      }
+    }
+  });
+}
+
+function renderRecent() {
+  const el = document.getElementById('recentContainer');
+  const recent = allPurchases.slice(0, 5);
+  if (!recent.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>Aucun achat enregistré</div>'; return; }
+  el.innerHTML = `<div style="overflow-x:auto;"><table class="data-table"><thead><tr>
+    <th>Date</th><th>ETF</th><th>Montant</th><th>Parts</th></tr></thead><tbody>
+    ${recent.map(p => `<tr><td>${fmtDate(p.date)}</td>
+      <td><span class="badge badge-blue">EPAB.PA</span></td>
+      <td><strong>${fmt(p.amount)} €</strong></td>
+      <td>${p.shares ? p.shares.toFixed(4) : '—'}</td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+
+// MON PEA
+function renderPurchasesTable() {
+  const el = document.getElementById('purchasesContainer');
+  if (!allPurchases.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>Aucun achat — ajoutez votre premier investissement ci-dessus</div>'; return;
+  }
+  const totalInvested = allPurchases.reduce((s, p) => s + (p.amount || 0), 0);
+  const rows = [...allPurchases].sort((a, b) => b.date.localeCompare(a.date)).map(p =>
+    `<tr><td>${fmtDate(p.date)}</td>
+     <td><span class="badge badge-blue">EPAB.PA</span></td>
+     <td><strong>${fmt(p.amount)} €</strong></td>
+     <td>${p.shares ? p.shares.toFixed(4) : '—'}</td>
+     <td style="color:var(--text-sub);font-size:12px;">${p.note || ''}</td>
+     <td><button class="btn-icon" onclick="deletePurchase('${p.id}')" title="Supprimer">🗑</button></td></tr>`
+  ).join('');
+  el.innerHTML = `<div style="overflow-x:auto;"><table class="data-table"><thead><tr>
+    <th>Date</th><th>ETF</th><th>Montant</th><th>Parts</th><th>Note</th><th></th>
+  </tr></thead><tbody>${rows}</tbody></table>
+  <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:24px;font-size:13px;color:var(--text-sub);">
+    <span>Total investi : <strong style="color:var(--text);">${fmt(totalInvested)} €</strong></span>
+    <span>Nb d'achats : <strong style="color:var(--text);">${allPurchases.length}</strong></span>
+  </div></div>`;
+}
+
+async function addPurchase() {
+  const date   = document.getElementById('fDate').value;
+  const amount = parseFloat(document.getElementById('fAmount').value);
+  const shares = parseFloat(document.getElementById('fShares').value) || null;
+  const note   = document.getElementById('fNote').value.trim() || null;
+  const btn    = document.getElementById('btnAdd');
+  if (!date || isNaN(amount) || amount <= 0) {
+    showToast('Veuillez renseigner la date et le montant.', 'error'); return;
+  }
+  btn.disabled = true; btn.textContent = '…';
+  const { error } = await db.from('purchases').insert([{
+    user_id: currentUser.id, date, etf: 'EPAB', amount, shares, note
+  }]);
+  btn.disabled = false; btn.textContent = '+ Ajouter';
+  if (error) { showToast("Erreur lors de l'ajout.", 'error'); console.error(error); }
+  else {
+    document.getElementById('fAmount').value = '';
+    document.getElementById('fShares').value = '';
+    document.getElementById('fNote').value   = '';
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('fDate').value = today;
+    showToast('Achat enregistré ✓', 'success');
+  }
+}
+
+async function deletePurchase(id) {
+  if (!confirm('Supprimer cet achat ?')) return;
+  const { error } = await db.from('purchases').delete().eq('id', id);
+  if (error) showToast('Erreur lors de la suppression.', 'error');
+  else showToast('Achat supprimé.', 'success');
+}
+
+// SIMULATEUR
+function updateSim() {
+  const budget   = parseFloat(document.getElementById('sBudget').value);
+  const years    = parseInt(document.getElementById('sDuration').value);
+  const rate     = parseFloat(document.getElementById('sRate').value);
+  const price    = parseFloat(document.getElementById('sPrice').value);
+  document.getElementById('sLabelBudget').textContent   = fmt(budget) + ' €';
+  document.getElementById('sLabelDuration').textContent = years + (years > 1 ? ' ans' : ' an');
+  document.getElementById('sLabelRate').textContent     = rate + ' %';
+  document.getElementById('sLabelPrice').textContent    = fmt(price) + ' €';
+  const months   = years * 12;
+  const r        = rate / 100 / 12;
+  const fv       = budget * ((Math.pow(1 + r, months) - 1) / r) * (1 + r);
+  const invested = budget * months;
+  const gain     = fv - invested;
+  const sharesN  = fv / price;
+  document.getElementById('rInvested').textContent = fmt(invested) + ' €';
+  document.getElementById('rFinal').textContent    = fmt(fv) + ' €';
+  document.getElementById('rGain').textContent     = '+' + fmt(gain) + ' €';
+  document.getElementById('rShares').textContent   = sharesN.toFixed(1) + ' parts';
+  const labelsSim = []; const valInvested = []; const valFV = [];
+  for (let m = 1; m <= months; m++) {
+    if (m % 12 === 0 || m === months) {
+      labelsSim.push((m/12) + ' an' + (m/12 > 1 ? 's' : ''));
+      valInvested.push(budget * m);
+      valFV.push(budget * ((Math.pow(1 + r, m) - 1) / r) * (1 + r));
+    }
+  }
+  if (chartSim) chartSim.destroy();
+  const ctx = document.getElementById('chartSimulator').getContext('2d');
+  const gradGreen = ctx.createLinearGradient(0, 0, 0, 300);
+  gradGreen.addColorStop(0, 'rgba(34,197,94,.25)');
+  gradGreen.addColorStop(1, 'rgba(34,197,94,.0)');
+  chartSim = new Chart(ctx, {
+    type: 'line',
+    data: { labels: labelsSim, datasets: [
+      { label: 'Valeur portefeuille', data: valFV, borderColor: '#22c55e',
+        backgroundColor: gradGreen, fill: true, tension: .4, pointRadius: 3, borderWidth: 2 },
+      { label: 'Total investi', data: valInvested, borderColor: '#4d7cfe',
+        backgroundColor: 'transparent', fill: false, tension: .1, pointRadius: 0, borderWidth: 2, borderDash: [4,4] }
+    ]},
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#8a94b8', boxWidth: 12 } },
+        tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ' : ' + fmt(c.parsed.y) + ' €' } }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#5b6488' } },
+        y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#5b6488', callback: v => fmt(v) + ' €' } }
+      }
+    }
+  });
+}
+
+// NAV
+function showSection(name, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-' + name).classList.add('active');
+  el.classList.add('active');
+}
+
+// UTILS
+function fmt(n) {
+  return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  const [y, m, day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+let toastTimer;
+function showToast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ''; }, 3200);
+}
+
+// START
+document.addEventListener('DOMContentLoaded', () => {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('fDate').value = today;
+  initAuth();
+});
+</script>
+</body>
+</html>
