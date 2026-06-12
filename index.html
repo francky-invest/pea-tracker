@@ -123,10 +123,10 @@
     .bottom-nav-item .bn-icon { font-size: 20px; line-height: 1; }
     .bottom-nav-item.active { color: var(--accent); }
     @media (max-width: 720px) {
-      .shell { grid-template-columns: 1fr; }
+      .shell { grid-template-columns: 1fr; height: auto; overflow-x: hidden; overflow-y: visible; }
       .sidebar { display: none; }
       .bottom-nav { display: block; }
-      .main { padding-bottom: 64px; }
+      .main { overflow-y: visible; height: auto; padding-bottom: 64px; }
       .page-header { padding: 20px 16px 0; }
       .page-title { font-size: 20px; }
       .page-body { padding: 16px 16px 24px; }
@@ -586,7 +586,7 @@ function renderDashboard() {
 }
 
 function renderEvolutionChart() {
-  const sorted = [...allPurchases].sort((a, b) => a.date.localeCompare(b.date));
+  const sorted = [...allPurchases].sort((rchases].sort((a, b) => a.date.localeCompare(b.date));
   const labels = []; const values = []; let cum = 0;
   sorted.forEach(p => { cum += p.amount || 0; labels.push(p.date); values.push(cum); });
   if (chartEvol) chartEvol.destroy();
@@ -612,7 +612,7 @@ function renderEvolutionChart() {
 function renderRecent() {
   const el = document.getElementById('recentContainer');
   const recent = allPurchases.slice(0, 5);
-  if (!recent.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📭4/div>Aucun achat enregistré</div>'; return; }
+  if (!recent.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>Aucun achat enregistré</div>'; return; }
   el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>ETF</th><th>Montant</th><th>Parts</th><th>Compte</th></tr></thead><tbody>' +
     recent.map(p => '<tr><td>' + fmtDate(p.date) + '</td><td><span class="badge badge-blue">EPAB.PA</span></td><td><strong>' + fmt(p.amount) + ' €</strong></td><td>' + (p.shares ? p.shares.toFixed(4) : '—') + '</td><td>' + (p.account === 'CTO' ? '<span class="badge badge-orange">CTO</span>' : '<span class="badge badge-green">PEA</span>') + '</td></tr>').join('') +
     '</tbody></table></div>';
