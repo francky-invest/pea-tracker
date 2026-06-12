@@ -151,21 +151,37 @@
       <div class="auth-logo-icon">📈</div>
       <div class="auth-logo-text">PEA <span>Francky</span></div>
     </div>
-    <div class="auth-title">Bienvenue</div>
-    <div class="auth-sub">Connectez-vous à votre espace investissement</div>
-    <div id="authError" class="auth-error"></div>
-    <div class="field">
-      <label>Adresse e-mail</label>
-      <input type="email" id="loginEmail" autocomplete="email" placeholder="votre@email.com">
+
+    <!-- Création du PIN (premier lancement) -->
+    <div id="pin-setup" style="display:none;">
+      <div class="auth-title">Créer votre code PIN</div>
+      <div class="auth-sub">Choisissez un code à 4–8 chiffres pour déverrouiller l'app</div>
+      <div id="pinSetupError" class="auth-error"></div>
+      <div class="field">
+        <label>Nouveau PIN</label>
+        <input type="password" id="pinNew" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label>Confirmer le PIN</label>
+        <input type="password" id="pinConfirm" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="new-password"
+               onkeydown="if(event.key==='Enter')doSetPin()">
+      </div>
+      <button class="btn-primary" id="btnSetPin" type="button" onclick="doSetPin()">Créer le PIN</button>
     </div>
-    <div class="field">
-      <label>Mot de passe</label>
-      <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••"
-             onkeydown="if(event.key==='Enter'){triggerLogin()}">
+
+    <!-- Saisie du PIN (connexion normale) -->
+    <div id="pin-verify" style="display:none;">
+      <div class="auth-title">Bienvenue</div>
+      <div class="auth-sub">Entrez votre code PIN pour accéder à l'app</div>
+      <div id="pinVerifyError" class="auth-error"></div>
+      <div class="field">
+        <label>Code PIN</label>
+        <input type="password" id="pinInput" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="current-password"
+               onkeydown="if(event.key==='Enter')doVerifyPin()">
+      </div>
+      <button class="btn-primary" id="btnVerify" type="button" onclick="doVerifyPin()">Déverrouiller</button>
+      <button class="btn-secondary" type="button" onclick="doResetPin()" style="margin-top:10px;width:100%;padding:10px;background:transparent;border:1px solid var(--border);color:var(--text-sub);border-radius:var(--radius);cursor:pointer;font-size:13px;">PIN oublié — réinitialiser</button>
     </div>
-    <button class="btn-primary" id="btnLogin" type="button" onclick="triggerLogin()">
-      Se connecter
-    </button>
   </div>
 </div>
 
@@ -226,7 +242,7 @@
             </div>
             <div class="kpi-card gold">
               <div class="kpi-label">Prix moyen</div>
-              <div class="kpi-value" id="kpiAvg">—
+              <div class="kpi-value" id="kpiAvg">—</div>
               <div class="kpi-sub">€ / part EPAB</div>
             </div>
           </div>
@@ -422,82 +438,94 @@
 
 <script>
 const SUPABASE_URL      = 'https://xzbhwitgutkwaomjuzcz.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6Ymh3aXRndXRrd2FvbWp1emN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDgzNzYsImV4cCI6MjA5NDYyNDM3Nn0.zoUMKjYCRAVgzuEscnhHvzdTbCV8x8ronvERq94tx_A';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6Ymh3aXRndXRrd2FvbWp1emN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDgzNzYsImV4cCI6MjA5NDYyNDM3Nn0.zoUMKjYCRAVgzuEscnhHvzdTbCV8x8ronvERq94tx_A';
 
 const { createClient } = window.supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
-});
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let currentUser = null;
 let allPurchases = [];
 let chartEvol = null;
 let chartSim  = null;
 
-// AUTH
-async function initAuth() {
-  const { data: { session } } = await db.auth.getSession();
-  if (session?.user) { currentUser = session.user; showApp(); }
-  else { showAuthScreen(); }
-
-  db.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_IN' && session) { currentUser = session.user; showApp(); }
-    else if (event === 'SIGNED_OUT') { currentUser = null; showAuthScreen(); }
-  });
+// PIN AUTH
+const PABZ_PIN_KEY = 'pabz_pin_hash';
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
-
-function triggerLogin() {
-  setTimeout(doLogin, 120);
-}
-
-async function doLogin() {
-  const email    = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value;
-  const errEl    = document.getElementById('authError');
-  const btn      = document.getElementById('btnLogin');
-  errEl.style.display = 'none';
-  if (!email || !password) {
-    errEl.textContent = 'Veuillez renseigner email et mot de passe.';
-    errEl.style.display = 'block'; return;
-  }
-  btn.disabled = true; btn.textContent = 'Connexion…';
-  const { error } = await db.auth.signInWithPassword({ email, password });
-  if (error) {
-    errEl.textContent = 'Email ou mot de passe incorrect.';
-    errEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = 'Se connecter';
-  } else {
-    localStorage.setItem('pabz_lastEmail', email);
-  }
-}
-
-async function doLogout() { await db.auth.signOut(); }
-
-function showAuthScreen() {
+async function initPin() {
+  const stored = localStorage.getItem(PABZ_PIN_KEY);
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
-  const saved = localStorage.getItem('pabz_lastEmail');
-  if (saved) {
-    const emailInput = document.getElementById('loginEmail');
-    if (emailInput) { emailInput.value = saved; }
-    setTimeout(() => { const pw = document.getElementById('loginPassword'); if (pw) pw.focus(); }, 150);
+  if (!stored) {
+    document.getElementById('pin-setup').style.display = 'block';
+    document.getElementById('pin-verify').style.display = 'none';
+    setTimeout(() => { const el = document.getElementById('pinNew'); if(el) el.focus(); }, 150);
+  } else {
+    document.getElementById('pin-setup').style.display = 'none';
+    document.getElementById('pin-verify').style.display = 'block';
+    setTimeout(() => { const el = document.getElementById('pinInput'); if(el) el.focus(); }, 150);
   }
 }
+async function doSetPin() {
+  const p1 = document.getElementById('pinNew').value;
+  const p2 = document.getElementById('pinConfirm').value;
+  const err = document.getElementById('pinSetupError');
+  const btn = document.getElementById('btnSetPin');
+  err.style.display = 'none';
+  if (!p1 || p1.length < 4) { err.textContent = 'Le PIN doit faire au moins 4 chiffres.'; err.style.display='block'; return; }
+  if (p1 !== p2) { err.textContent = 'Les deux codes PIN ne correspondent pas.'; err.style.display='block'; return; }
+  btn.disabled = true; btn.textContent = '…';
+  const hash = await sha256(p1);
+  localStorage.setItem(PABZ_PIN_KEY, hash);
+  showApp();
+}
+async function doVerifyPin() {
+  const pin = document.getElementById('pinInput').value;
+  const err = document.getElementById('pinVerifyError');
+  const btn = document.getElementById('btnVerify');
+  err.style.display = 'none';
+  if (!pin) { err.textContent = 'Entrez votre code PIN.'; err.style.display='block'; return; }
+  btn.disabled = true; btn.textContent = '…';
+  const hash = await sha256(pin);
+  const stored = localStorage.getItem(PABZ_PIN_KEY);
+  if (hash === stored) {
+    showApp();
+  } else {
+    err.textContent = 'Code PIN incorrect.';
+    err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Déverrouiller';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('pinInput').focus();
+  }
+}
+function doResetPin() {
+  if (!confirm('Réinitialiser le PIN ? Vous devrez en créer un nouveau.')) return;
+  localStorage.removeItem(PABZ_PIN_KEY);
+  initPin();
+}
+function doLogout() {
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('pin-setup').style.display = 'none';
+  document.getElementById('pin-verify').style.display = 'block';
+  document.getElementById('pinInput').value = '';
+  setTimeout(() => document.getElementById('pinInput').focus(), 150);
+}
+
 
 function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  const email = currentUser.email;
-  document.getElementById('userEmail').textContent = email;
-  document.getElementById('userAvatar').textContent = email.charAt(0).toUpperCase();
+  document.getElementById('userEmail').textContent = 'Francky';
+  document.getElementById('userAvatar').textContent = 'F';
   const now = new Date();
   document.getElementById('dashDate').textContent =
     now.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
   updateSim();
   loadAll();
   db.channel('purchases-ch')
-    .on('postgres_changes', { event:'*', schema:'public', table:'purchases',
-        filter:`user_id=eq.${currentUser.id}` }, () => loadAll())
+    .on('postgres_changes', { event:'*', schema:'public', table:'purchases' }, () => loadAll())
     .subscribe();
 }
 
@@ -593,7 +621,7 @@ async function addPurchase() {
   }
   btn.disabled = true; btn.textContent = '…';
   const { error } = await db.from('purchases').insert([{
-    user_id: currentUser.id, date, etf: 'EPAB', amount, shares, note
+    date, etf: 'EPAB', amount, shares, note
   }]);
   btn.disabled = false; btn.textContent = '+ Ajouter';
   if (error) { showToast("Erreur lors de l'ajout.", 'error'); console.error(error); }
@@ -787,7 +815,7 @@ function showToast(msg, type) {
   toastTimer = setTimeout(() => { el.className = ''; }, 3200);
 }
 
-initAuth();
+initPin();
 </script>
 </body>
 </html>
