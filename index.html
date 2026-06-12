@@ -1,1356 +1,793 @@
-https://raw.githubusercontent.com/francky-invest/pea-tracker/ef4e0a8/index.html
-→ https://raw.githubusercontent.com/francky-invest/pea-tracker/ef4e0a8/index.html
-Content-Type: text/plain; charset=utf-8
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>DCA PEA – Simulateur EPAB</title>
-  <link rel="manifest" href="./manifest.json"/>
-  <meta name="theme-color" content="#6c63ff"/>
-  <meta name="mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <meta name="apple-mobile-web-app-title" content="DCA PEA"/>
-  <link rel="apple-touch-icon" href="./icon-192.png"/>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PEA Francky</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
-    :root{
-      --bg:#0b0e1a;--surface:#131726;--card:#1a1f35;--card2:#1e2438;
-      --border:rgba(255,255,255,.07);--accent:#6c63ff;--accent2:#00d4aa;
-      --accent3:#ff6b6b;--accent4:#ffd166;--orange:#ff9f43;--green:#4ade80;
-      --text:#e8eaf0;--muted:#8890a4;--radius:16px;--shadow:0 8px 32px rgba(0,0,0,.5);
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0b0d14; --bg-card: #111520; --bg-elevated: #181c2a; --bg-input: #0f1219;
+      --border: #1e2338; --border-light: #252d47;
+      --accent: #4d7cfe; --accent-dim: rgba(77,124,254,.12); --accent-glow: rgba(77,124,254,.25);
+      --green: #22c55e; --green-dim: rgba(34,197,94,.1);
+      --red: #ef4444; --red-dim: rgba(239,68,68,.1);
+      --gold: #f59e0b; --gold-dim: rgba(245,158,11,.1);
+      --text: #dde1f0; --text-muted: #5b6488; --text-sub: #8a94b8;
+      --radius: 12px; --radius-sm: 8px; --shadow: 0 4px 24px rgba(0,0,0,.4);
     }
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    html{scroll-behavior:smooth;}
-    body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
-
-    /* ══ AUTH ══ */
-    #authScreen{
-      min-height:100vh;display:flex;align-items:center;justify-content:center;
-      background:linear-gradient(135deg,#0b0e1a 0%,#131726 100%);padding:20px;
+    html, body { height: 100%; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    #auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(77,124,254,.18), transparent); }
+    .auth-card { width: 380px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 18px; padding: 40px 36px; box-shadow: var(--shadow); }
+    .auth-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; }
+    .auth-logo-icon { width: 38px; height: 38px; background: linear-gradient(135deg, var(--accent), #7c5cfc); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .auth-logo-text { font-size: 20px; font-weight: 700; letter-spacing: -.5px; }
+    .auth-logo-text span { color: var(--accent); }
+    .auth-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .auth-sub { color: var(--text-sub); font-size: 13px; margin-bottom: 28px; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-sub); margin-bottom: 6px; letter-spacing: .04em; text-transform: uppercase; }
+    .field input { width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 11px 14px; color: var(--text); font-size: 14px; font-family: inherit; outline: none; transition: border-color .2s; }
+    .field input:focus { border-color: var(--accent); }
+    .field input::placeholder { color: var(--text-muted); }
+    .auth-error { background: var(--red-dim); border: 1px solid rgba(239,68,68,.3); color: var(--red); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .btn-primary { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); padding: 12px; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; transition: opacity .2s, transform .1s; margin-top: 8px; }
+    .btn-primary:hover { opacity: .88; }
+    .btn-primary:active { transform: scale(.98); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    #app { display: none; height: 100vh; }
+    .shell { display: grid; grid-template-columns: 220px 1fr; height: 100vh; overflow: hidden; }
+    .sidebar { background: var(--bg-card); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px 0; overflow-y: auto; }
+    .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 20px 24px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .brand-icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--accent), #7c5cfc); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .brand-name { font-size: 15px; font-weight: 700; letter-spacing: -.3px; }
+    .brand-name span { color: var(--accent); }
+    .nav-section { padding: 0 12px; flex: 1; }
+    .nav-label { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); padding: 8px 8px 6px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm); color: var(--text-sub); font-size: 13.5px; font-weight: 500; cursor: pointer; transition: background .15s, color .15s; margin-bottom: 2px; user-select: none; }
+    .nav-item:hover { background: var(--bg-elevated); color: var(--text); }
+    .nav-item.active { background: var(--accent-dim); color: var(--accent); }
+    .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+    .sidebar-footer { padding: 16px 20px 0; border-top: 1px solid var(--border); margin-top: 16px; }
+    .user-chip { display: flex; align-items: center; gap: 10px; }
+    .user-avatar { width: 32px; height: 32px; background: linear-gradient(135deg, #4d7cfe, #7c5cfc); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .user-email { font-size: 11px; color: var(--text-sub); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .btn-logout { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 4px; border-radius: 6px; transition: color .15s; }
+    .btn-logout:hover { color: var(--red); }
+    .main { overflow-y: auto; background: var(--bg); }
+    .page-header { padding: 32px 32px 0; }
+    .page-title { font-size: 24px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 4px; }
+    .page-sub { color: var(--text-sub); font-size: 13px; }
+    .page-body { padding: 24px 32px 40px; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .kpi-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); margin-bottom: 10px; }
+    .kpi-value { font-size: 26px; font-weight: 700; letter-spacing: -.5px; color: #fff; }
+    .kpi-sub { font-size: 12px; color: var(--text-sub); margin-top: 4px; }
+    .kpi-card.accent { border-color: var(--accent-dim); background: linear-gradient(135deg, var(--bg-card), rgba(77,124,254,.05)); }
+    .kpi-card.gold { border-color: rgba(245,158,11,.2); }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .card-title { font-size: 15px; font-weight: 600; }
+    .card-sub { font-size: 12px; color: var(--text-sub); }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th { text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+    .data-table td { padding: 12px 12px; border-bottom: 1px solid rgba(255,255,255,.03); color: var(--text); }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: rgba(255,255,255,.02); }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-blue { background: var(--accent-dim); color: var(--accent); }
+    .badge-green { background: var(--green-dim); color: var(--green); }
+    .btn-icon { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px 8px; border-radius: 6px; transition: background .15s, color .15s; font-size: 14px; }
+    .btn-icon:hover { background: var(--red-dim); color: var(--red); }
+    .add-form { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 12px; align-items: end; background: var(--bg-elevated); border: 1px solid var(--border-light); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
+    .form-field label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-sub); margin-bottom: 6px; }
+    .form-field input, .form-field select { width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; color: var(--text); font-size: 13px; font-family: inherit; outline: none; transition: border-color .2s; }
+    .form-field input:focus, .form-field select:focus { border-color: var(--accent); }
+    .btn-add { background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); padding: 9px 18px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; white-space: nowrap; transition: opacity .2s; }
+    .btn-add:hover { opacity: .85; }
+    .btn-add:disabled { opacity: .5; cursor: not-allowed; }
+    .sim-grid { display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
+    .sim-inputs { display: flex; flex-direction: column; gap: 14px; }
+    .range-field label { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+    .range-field label span { color: var(--accent); font-size: 15px; font-weight: 700; text-transform: none; letter-spacing: 0; }
+    .range-field input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+    .sim-result { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+    .result-item { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; }
+    .result-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+    .result-value { font-size: 20px; font-weight: 700; color: #fff; }
+    .result-value.green { color: var(--green); }
+    .result-value.gold { color: var(--gold); }
+    .loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 40px; color: var(--text-muted); }
+    .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+    .empty-icon { font-size: 36px; margin-bottom: 12px; }
+    .btn-period { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-sub); border-radius: 6px; padding: 5px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; font-family: inherit; }
+    .btn-period:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-period.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+    #toast { position: fixed; bottom: 28px; right: 28px; background: var(--bg-elevated); border: 1px solid var(--border-light); border-radius: var(--radius); padding: 14px 20px; font-size: 13px; font-weight: 500; box-shadow: var(--shadow); transform: translateY(80px); opacity: 0; transition: all .3s cubic-bezier(.34,1.56,.64,1); z-index: 1000; max-width: 320px; }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.success { border-color: rgba(34,197,94,.4); color: var(--green); }
+    #toast.error { border-color: rgba(239,68,68,.4); color: var(--red); }
+    .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border); z-index: 100; }
+    .bottom-nav-items { display: flex; }
+    .bottom-nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0 8px; gap: 3px; cursor: pointer; color: var(--text-muted); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; transition: color .15s; border: none; background: none; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+    .bottom-nav-item .bn-icon { font-size: 20px; line-height: 1; }
+    .bottom-nav-item.active { color: var(--accent); }
+    @media (max-width: 720px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .bottom-nav { display: block; }
+      .main { padding-bottom: 64px; }
+      .page-header { padding: 20px 16px 0; }
+      .page-title { font-size: 20px; }
+      .page-body { padding: 16px 16px 24px; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+      .kpi-card { padding: 14px; }
+      .kpi-value { font-size: 20px; }
+      .card { padding: 16px; margin-bottom: 14px; }
+      .add-form { grid-template-columns: 1fr; gap: 10px; padding: 14px; }
+      .btn-add { width: 100%; padding: 11px; }
+      .data-table th, .data-table td { padding: 10px 8px; font-size: 12px; }
+      .sim-grid { grid-template-columns: 1fr; }
+      .sim-result { grid-template-columns: 1fr 1fr; }
+      .auth-card { width: calc(100% - 32px); margin: 16px; padding: 28px 20px; }
     }
-    .auth-card{
-      background:var(--card);border-radius:22px;padding:38px 30px;
-      width:100%;max-width:400px;
-      box-shadow:0 24px 64px rgba(0,0,0,.7);border:1px solid rgba(108,99,255,.2);
-    }
-    .auth-logo{text-align:center;margin-bottom:26px;}
-    .auth-logo .logo-icon{
-      width:68px;height:68px;border-radius:18px;
-      background:linear-gradient(135deg,var(--accent),var(--accent2));
-      display:inline-flex;align-items:center;justify-content:center;
-      font-size:1.9rem;margin-bottom:11px;
-    }
-    .auth-logo h1{font-size:1.55rem;font-weight:800;background:linear-gradient(135deg,#fff 30%,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-    .auth-logo p{color:var(--muted);font-size:.82rem;margin-top:4px;}
-    .auth-tabs{display:flex;background:var(--surface);border-radius:11px;padding:4px;gap:4px;margin-bottom:24px;}
-    .auth-tab{flex:1;padding:10px;background:none;border:none;border-radius:8px;color:var(--muted);font-size:.86rem;font-weight:600;cursor:pointer;transition:all .2s;}
-    .auth-tab.active{background:var(--card);color:var(--text);}
-    .auth-group{margin-bottom:15px;}
-    .auth-group label{display:block;font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
-    .auth-group input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:11px;color:var(--text);font-size:1rem;padding:13px 15px;outline:none;transition:border-color .2s;}
-    .auth-group input:focus{border-color:var(--accent);}
-    .auth-btn{width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:11px;color:#fff;font-size:1rem;font-weight:700;padding:14px;cursor:pointer;transition:opacity .2s;margin-top:7px;}
-    .auth-btn:hover{opacity:.88;} .auth-btn:disabled{opacity:.5;cursor:not-allowed;}
-    .auth-forgot{width:100%;background:none;border:none;color:var(--muted);font-size:.78rem;cursor:pointer;margin-top:10px;text-decoration:underline;}
-    .auth-forgot:hover{color:var(--text);}
-    .auth-error{background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.3);border-radius:9px;padding:10px 13px;color:var(--accent3);font-size:.81rem;margin-top:12px;display:none;}
-    .auth-success{background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.3);border-radius:9px;padding:10px 13px;color:var(--accent2);font-size:.81rem;margin-top:12px;display:none;}
-
-    /* ══ MAIN APP ══ */
-    #mainApp{display:none;padding-bottom:60px;}
-
-    /* ══ HEADER ══ */
-    header{
-      text-align:center;padding:26px 16px 16px;position:relative;
-      background:linear-gradient(180deg,rgba(108,99,255,.12) 0%,transparent 100%);
-      border-bottom:1px solid var(--border);margin-bottom:16px;
-    }
-    .header-user{position:absolute;top:14px;right:14px;display:flex;align-items:center;gap:8px;}
-    .user-email{font-size:.7rem;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-    .btn-logout{background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.2);border-radius:8px;color:var(--accent3);font-size:.73rem;font-weight:600;padding:5px 10px;cursor:pointer;transition:all .2s;white-space:nowrap;}
-    .btn-logout:hover{background:rgba(255,107,107,.2);}
-    .badge{display:inline-block;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:.67rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:4px 12px;border-radius:99px;margin-bottom:10px;}
-    header h1{font-size:clamp(1.3rem,4vw,2.1rem);font-weight:800;letter-spacing:-.02em;background:linear-gradient(135deg,#fff 30%,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-    header p{color:var(--muted);margin-top:5px;font-size:.83rem;}
-    .sync-badge{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.25);border-radius:99px;padding:5px 13px;font-size:.73rem;color:var(--accent2);font-weight:600;}
-    .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--accent2);animation:pulse 2s infinite;}
-
-    /* ══ TABS ══ */
-    nav{display:flex;gap:5px;max-width:960px;margin:0 auto 16px;padding:0 12px;}
-    .tab-btn{flex:1;padding:11px 5px;background:var(--surface);border:1px solid var(--border);border-radius:11px;color:var(--muted);font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;text-align:center;}
-    .tab-btn.active{background:linear-gradient(135deg,rgba(108,99,255,.3),rgba(0,212,170,.2));border-color:var(--accent);color:var(--text);}
-    .tab-btn:hover:not(.active){border-color:rgba(255,255,255,.15);color:var(--text);}
-    .panel{display:none;} .panel.active{display:block;}
-
-    /* ══ LAYOUT ══ */
-    .wrapper{max-width:960px;margin:0 auto;padding:0 12px;display:flex;flex-direction:column;gap:15px;}
-    .card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);border:1px solid var(--border);}
-    .card-title{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
-    .card-title::before{content:'';display:block;width:3px;height:15px;border-radius:99px;background:linear-gradient(var(--accent),var(--accent2));flex-shrink:0;}
-
-    /* ══ CONTROLS ══ */
-    .control-group{margin-bottom:20px;} .control-group:last-child{margin-bottom:0;}
-    .control-label{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;}
-    .control-label span{font-size:.88rem;font-weight:500;}
-    .control-label strong{font-size:1.15rem;font-weight:800;color:var(--accent2);}
-    .input-euro{position:relative;display:flex;align-items:center;}
-    .input-euro input{width:100%;background:var(--surface);border:2px solid rgba(108,99,255,.3);border-radius:11px;color:var(--text);font-size:1.4rem;font-weight:800;padding:12px 46px 12px 14px;outline:none;transition:border-color .2s;}
-    .input-euro input:focus{border-color:var(--accent);}
-    .input-euro .euro-sign{position:absolute;right:14px;font-size:1.1rem;color:var(--muted);pointer-events:none;}
-    input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:99px;background:var(--surface);outline:none;cursor:pointer;}
-    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 0 10px rgba(108,99,255,.6);cursor:pointer;transition:transform .15s;}
-    input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);}
-    input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;cursor:pointer;}
-    .slider-ticks{display:flex;justify-content:space-between;font-size:.67rem;color:var(--muted);margin-top:4px;padding:0 2px;}
-    .livret-row{display:flex;align-items:center;gap:10px;background:rgba(255,159,67,.07);border:1px solid rgba(255,159,67,.2);border-radius:11px;padding:11px 14px;margin-top:6px;}
-    .livret-row label{font-size:.8rem;color:var(--orange);font-weight:600;white-space:nowrap;}
-    .livret-row input[type=number]{width:68px;background:var(--surface);border:1px solid rgba(255,159,67,.3);border-radius:8px;color:var(--orange);font-size:.92rem;font-weight:800;padding:5px 7px;outline:none;text-align:center;}
-    .livret-row span{font-size:.76rem;color:var(--muted);flex:1;}
-
-    /* ══ KPI ══ */
-    .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
-    @media(max-width:560px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
-    .kpi{background:var(--surface);border-radius:11px;padding:13px 10px;text-align:center;border:1px solid var(--border);}
-    .kpi-label{font-size:.62rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
-    .kpi-value{font-size:clamp(.85rem,2.5vw,1.3rem);font-weight:800;letter-spacing:-.02em;}
-    .kpi-value.purple{color:var(--accent);} .kpi-value.teal{color:var(--accent2);}
-    .kpi-value.white{color:#fff;} .kpi-value.orange{color:var(--orange);}
-    .kpi-value.positive{color:var(--accent2);} .kpi-value.negative{color:var(--accent3);}
-
-    /* ══ CHART ══ */
-    .chart-wrap{position:relative;width:100%;height:280px;}
-
-    /* ══ SCENARIOS ══ */
-    .scenarios-controls{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
-    @media(max-width:540px){.scenarios-controls{grid-template-columns:1fr;}}
-    .scenario-box{background:var(--surface);border-radius:11px;padding:13px;border:2px solid var(--border);}
-    .scenario-box.s1{border-color:rgba(108,99,255,.4);} .scenario-box.s2{border-color:rgba(0,212,170,.4);} .scenario-box.s3{border-color:rgba(255,107,107,.4);}
-    .scenario-box label{display:block;font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px;}
-    .scenario-box.s1 label{color:var(--accent);} .scenario-box.s2 label{color:var(--accent2);} .scenario-box.s3 label{color:var(--accent3);}
-    .scenario-box input[type=number]{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1.15rem;font-weight:800;padding:8px 9px;outline:none;text-align:center;}
-    .scenario-suffix{text-align:center;color:var(--muted);font-size:.74rem;margin-top:3px;}
-    .compare-table{width:100%;border-collapse:collapse;font-size:.84rem;}
-    .compare-table th{padding:9px 10px;text-align:left;font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
-    .compare-table td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,.03);}
-    .compare-table tr:last-child td{border-bottom:none;}
-    .year-col{color:var(--muted);font-weight:600;} .s1-col{color:var(--accent);font-weight:700;} .s2-col{color:var(--accent2);font-weight:700;} .s3-col{color:var(--accent3);font-weight:700;}
-
-    /* ══ PABZ CARD ══ */
-    .pabz-hero{background:linear-gradient(135deg,rgba(0,212,170,.1),rgba(108,99,255,.07));border:1px solid rgba(0,212,170,.22);border-radius:14px;padding:18px;margin-bottom:16px;}
-    .pabz-label{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:99px;background:rgba(74,222,128,.15);color:var(--green);border:1px solid rgba(74,222,128,.3);margin-bottom:8px;display:inline-block;}
-    .pabz-name{font-size:1rem;font-weight:800;color:var(--text);margin-bottom:3px;}
-    .pabz-isin{font-size:.73rem;color:var(--muted);font-family:monospace;}
-    .pabz-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;}
-    @media(max-width:480px){.pabz-stats{grid-template-columns:1fr 1fr;}}
-    .pabz-stat{background:rgba(0,0,0,.2);border-radius:10px;padding:10px 12px;border:1px solid var(--border);}
-    .pabz-stat-label{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
-    .pabz-stat-value{font-size:.95rem;font-weight:800;}
-    .pabz-desc{font-size:.76rem;color:var(--muted);line-height:1.6;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
-    .note{background:rgba(108,99,255,.07);border:1px solid rgba(108,99,255,.2);border-radius:11px;padding:12px 14px;font-size:.77rem;color:var(--muted);line-height:1.6;}
-    .note strong{color:var(--text);}
-
-    /* ══ MON PEA ══ */
-    .pea-kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
-    @media(max-width:460px){.pea-kpi-grid{grid-template-columns:1fr;}}
-
-    /* Tirelire */
-    .tl-grid{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
-    .tl-row{display:flex;justify-content:space-between;align-items:center;background:var(--surface);border-radius:9px;padding:10px 14px;border:1px solid var(--border);}
-    .tl-row span{font-size:.79rem;color:var(--muted);}
-    .tl-row strong{font-size:.9rem;font-weight:700;color:var(--text);}
-    .tl-row.tl-parts{border-color:rgba(108,99,255,.3);} .tl-row.tl-parts strong{color:var(--accent);}
-    .tl-row.tl-cash{border-color:rgba(255,209,102,.3);} .tl-row.tl-cash strong{color:var(--accent4);}
-    .tl-row.tl-full{border-color:rgba(0,212,170,.3);} .tl-row.tl-full strong{color:var(--accent2);}
-    .tl-row.tl-pea-cash{border-color:rgba(108,99,255,.25);} .tl-row.tl-pea-cash strong{color:var(--accent);}
-    .tl-row.tl-warn{border-color:rgba(255,209,102,.45)!important;background:rgba(255,209,102,.06)!important;} .tl-row.tl-warn strong{color:var(--accent4)!important;}
-    .tl-row.tl-ok{border-color:rgba(74,222,128,.45)!important;background:rgba(74,222,128,.07)!important;} .tl-row.tl-ok strong{color:var(--green)!important;}
-    .tl-progress-wrap{border-radius:99px;background:rgba(255,255,255,.07);height:7px;overflow:hidden;margin:4px 0 8px;}
-    .tl-progress-bar{height:100%;border-radius:99px;transition:width .5s ease,background .5s ease;}
-    .tl-note{font-size:.73rem;color:var(--muted);background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.15);border-radius:9px;padding:10px 13px;line-height:1.65;}
-    .tl-note strong{color:var(--accent2);}
-    .tl-status-ok{display:none;font-size:.78rem;font-weight:700;color:var(--green);background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);border-radius:9px;padding:10px 14px;text-align:center;}
-
-    /* Valorisation */
-    .valo-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:17px;}
-    @media(max-width:500px){.valo-grid{grid-template-columns:1fr;}}
-    .valo-input-group>label{display:block;font-size:.66rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
-    .valo-input-wrap{position:relative;display:flex;align-items:center;}
-    .valo-input-wrap input{width:100%;background:var(--surface);border:2px solid rgba(0,212,170,.25);border-radius:11px;color:var(--accent2);font-size:1.3rem;font-weight:800;padding:12px 46px 12px 14px;outline:none;transition:border-color .2s;}
-    .valo-input-wrap input:focus{border-color:var(--accent2);}
-    .valo-input-wrap .unit{position:absolute;right:13px;font-size:.9rem;color:var(--muted);pointer-events:none;}
-    .valo-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
-    @media(max-width:560px){.valo-kpi-grid{grid-template-columns:repeat(2,1fr);}}
-    .valo-hint{font-size:.68rem;color:var(--muted);margin-top:6px;line-height:1.55;}
-    .valo-hint a{color:var(--accent);text-decoration:none;}
-    .valo-hint a:hover{text-decoration:underline;}
-    .btn-autofill{background:rgba(108,99,255,.12);border:1px solid rgba(108,99,255,.3);border-radius:8px;color:var(--accent);font-size:.71rem;font-weight:600;padding:6px 11px;cursor:pointer;transition:all .2s;margin-top:8px;white-space:nowrap;}
-    .btn-autofill:hover{background:rgba(108,99,255,.25);}
-    .valo-last-update{font-size:.65rem;color:var(--muted);text-align:right;margin-top:11px;font-style:italic;}
-
-    /* Formulaire achat */
-    .add-form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;}
-    @media(max-width:640px){.add-form{grid-template-columns:1fr 1fr;} .btn-add{grid-column:span 2;}}
-    .form-group label{display:block;font-size:.66rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
-    .form-group input,.form-group select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.9rem;font-weight:600;padding:10px 11px;outline:none;transition:border-color .2s;-webkit-appearance:none;}
-    .form-group input:focus,.form-group select:focus{border-color:var(--accent);}
-    .btn-add{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-size:.9rem;font-weight:700;padding:10px 18px;cursor:pointer;transition:opacity .2s;white-space:nowrap;}
-    .btn-add:hover{opacity:.85;} .btn-add:disabled{opacity:.5;cursor:not-allowed;}
-
-    /* Table achats */
-    .purchases-table{width:100%;border-collapse:collapse;font-size:.84rem;}
-    .purchases-table th{padding:9px 10px;text-align:left;font-size:.63rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
-    .purchases-table td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle;}
-    .purchases-table tr:last-child td{border-bottom:none;}
-    .purchases-table tr:hover td{background:rgba(255,255,255,.02);}
-    .etf-pill{display:inline-block;font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:99px;background:rgba(0,212,170,.12);color:var(--accent2);}
-    .amount-cell{font-weight:700;color:var(--accent2);} .shares-cell{color:var(--muted);}
-    .btn-del{background:none;border:1px solid rgba(255,107,107,.3);border-radius:6px;color:var(--accent3);font-size:.76rem;padding:4px 8px;cursor:pointer;transition:all .2s;}
-    .btn-del:hover{background:rgba(255,107,107,.15);}
-    .empty-state{text-align:center;padding:32px 20px;color:var(--muted);font-size:.86rem;}
-    .empty-state .empty-icon{font-size:2.4rem;margin-bottom:10px;}
-    .loading{text-align:center;padding:24px;color:var(--muted);font-size:.86rem;}
-    .spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-right:7px;vertical-align:middle;}
-
-    /* ══ ETF MARKET CHART ══ */
-    .period-btns{display:flex;gap:6px;margin-bottom:14px;}
-    .period-btn{background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:.76rem;font-weight:600;padding:6px 16px;cursor:pointer;transition:all .2s;}
-    .period-btn.active{background:linear-gradient(135deg,rgba(108,99,255,.3),rgba(0,212,170,.2));border-color:var(--accent);color:var(--text);}
-    .period-btn:hover:not(.active){border-color:rgba(255,255,255,.15);color:var(--text);}
-    .etf-live-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;padding:12px 16px;background:var(--surface);border-radius:12px;border:1px solid var(--border);}
-    .etf-live-price{font-size:1.7rem;font-weight:800;color:var(--accent2);letter-spacing:-.02em;}
-    .etf-perf-badge{font-size:.85rem;font-weight:700;padding:5px 12px;border-radius:99px;}
-    .etf-perf-badge.pos{background:rgba(74,222,128,.12);color:var(--green);border:1px solid rgba(74,222,128,.3);}
-    .etf-perf-badge.neg{background:rgba(255,107,107,.12);color:var(--accent3);border:1px solid rgba(255,107,107,.3);}
-    .etf-chart-info{font-size:.67rem;color:var(--muted);text-align:right;margin-top:6px;}
-    .chart-loading{display:flex;align-items:center;justify-content:center;height:280px;color:var(--muted);font-size:.84rem;}
-
-    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    footer{text-align:center;color:var(--muted);font-size:.68rem;margin-top:5px;padding-bottom:8px;}
-
-    /* ETF CHART */
-    .etf-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
-    .etf-info-card{background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 18px;}
-    .etf-info-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:6px;}
-    .etf-live-price{font-size:22px;font-weight:700;color:#fff;}
-    .etf-perf-badge{display:inline-block;margin-top:4px;padding:2px 8px;border-radius:20px;font-size:12px;font-weight:700;}
-    .etf-perf-badge.pos{background:var(--green-dim);color:var(--green);}
-    .etf-perf-badge.neg{background:var(--red-dim);color:var(--red);}
-    .etf-period-btns{display:flex;gap:8px;margin-bottom:14px;}
-    .etf-period-btn{background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-sub);border-radius:6px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
-    .etf-period-btn.active,.etf-period-btn:hover{background:var(--accent-dim);color:var(--accent);border-color:var(--accent-glow);}
-    .chart-wrap{position:relative;height:240px;}
-    .etf-plan-card{background:var(--bg-elevated);border:1px solid rgba(0,212,170,.3);border-radius:var(--radius-sm);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-    .etf-plan-card span{font-size:13px;color:var(--text);}
-    .etf-plan-card strong{font-size:12px;color:#00d4aa;}
+    @media (max-width: 900px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } .sim-grid { grid-template-columns: 1fr; } .add-form { grid-template-columns: 1fr 1fr; } }
   </style>
 </head>
 <body>
 
-<!-- ══ ÉCRAN DE CONNEXION ══ -->
-<div id="authScreen">
+<div id="auth-screen">
   <div class="auth-card">
     <div class="auth-logo">
-      <div class="logo-icon">🌿</div>
-      <h1>DCA PEA</h1>
-      <p>Simulateur EPAB · Synchronisé PC &amp; Mobile</p>
+      <div class="auth-logo-icon">📈</div>
+      <div class="auth-logo-text">PEA <span>Francky</span></div>
     </div>
-    <div class="auth-tabs">
-      <button class="auth-tab active" onclick="switchTab('login',this)">Connexion</button>
-      <button class="auth-tab" onclick="switchTab('signup',this)">Créer un compte</button>
+    <div class="auth-title">Bienvenue</div>
+    <div class="auth-sub">Connectez-vous à votre espace investissement</div>
+    <div id="authError" class="auth-error"></div>
+    <div class="field">
+      <label>Adresse e-mail</label>
+      <input type="email" id="loginEmail" autocomplete="email" placeholder="votre@email.com">
     </div>
-    <div id="loginForm">
-      <div class="auth-group"><label>Email</label><input type="email" id="loginEmail" placeholder="ton@email.com" autocomplete="email"/></div>
-      <div class="auth-group"><label>Mot de passe</label><input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/></div>
-      <button class="auth-btn" id="btnLogin" onclick="doLogin()">Se connecter</button>
-      <button class="auth-forgot" onclick="doReset()">Mot de passe oublié ?</button>
+    <div class="field">
+      <label>Mot de passe</label>
+      <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••"
+             onkeydown="if(event.key==='Enter'){triggerLogin()}">
     </div>
-    <div id="signupForm" style="display:none">
-      <div class="auth-group"><label>Email</label><input type="email" id="signupEmail" placeholder="ton@email.com" autocomplete="email"/></div>
-      <div class="auth-group"><label>Mot de passe</label><input type="password" id="signupPassword" placeholder="Minimum 6 caractères" autocomplete="new-password"/></div>
-      <button class="auth-btn" id="btnSignup" onclick="doSignup()">Créer mon compte</button>
-    </div>
-    <div class="auth-error" id="authError"></div>
-    <div class="auth-success" id="authSuccess"></div>
+    <button class="btn-primary" id="btnLogin" type="button" onclick="triggerLogin()">
+      Se connecter
+    </button>
   </div>
 </div>
 
-<!-- ══ APPLICATION ══ -->
-<div id="mainApp">
-<header>
-  <div class="header-user">
-    <span class="user-email" id="userEmail"></span>
-    <button class="btn-logout" onclick="doLogout()">⏻ Déconnexion</button>
-  </div>
-  <div class="badge">PEA · Trade Republic · EPAB · DCA</div>
-  <h1>Mon Simulateur PEA</h1>
-  <p>Intérêts composés · Zone Euro · Accords de Paris</p>
-  <div class="sync-badge"><span class="sync-dot"></span>Synchronisé PC &amp; Mobile</div>
-</header>
+<div id="app">
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">📈</div>
+        <div class="brand-name">PEA <span>Francky</span></div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Navigation</div>
+        <div class="nav-item active" id="nav-dashboard" onclick="showSection('dashboard',this)">
+          <span class="nav-icon">🏠</span> Tableau de bord
+        </div>
+        <div class="nav-item" id="nav-pea" onclick="showSection('pea',this)">
+          <span class="nav-icon">💼</span> Mon PEA
+        </div>
+        <div class="nav-item" id="nav-simulator" onclick="showSection('simulator',this)">
+          <span class="nav-icon">🧮</span> Simulateur DCA
+        </div>
+        <div class="nav-item" id="nav-etf" onclick="showSection('etf',this)">
+          <span class="nav-icon">📊</span> Mon ETF
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="user-avatar" id="userAvatar">F</div>
+          <div class="user-email" id="userEmail">—</div>
+          <button class="btn-logout" onclick="doLogout()" title="Déconnexion">⏻</button>
+        </div>
+      </div>
+    </aside>
 
-<nav>
-  <button class="tab-btn active" onclick="showTab('simulator',this)">📈 Simulateur</button>
-  <button class="tab-btn" onclick="showTab('scenarios',this)">⚖️ Scénarios</button>
-  <button class="tab-btn" onclick="showTab('etf',this)">🌿 Mon ETF</button>
-  <button class="tab-btn" onclick="showTab('pea',this)">📒 Mon PEA</button>
-</nav>
-
-<!-- ── Simulateur ── -->
-<div id="tab-simulator" class="panel active">
-<div class="wrapper">
-  <div class="card">
-    <div class="card-title">Paramètres de simulation</div>
-    <div class="control-group">
-      <div class="control-label"><span>Versement mensuel</span></div>
-      <div class="input-euro"><input type="number" id="monthly" value="50" min="1" max="10000"/><span class="euro-sign">€</span></div>
-    </div>
-    <div class="control-group">
-      <div class="control-label"><span>Rendement annuel estimé</span><strong id="rateVal">7 %</strong></div>
-      <input type="range" id="rate" min="3" max="15" step="0.5" value="7"/>
-      <div class="slider-ticks"><span>3 %</span><span>7 %</span><span>10 %</span><span>15 %</span></div>
-    </div>
-    <div class="control-group">
-      <div class="control-label"><span>Durée d'investissement</span><strong id="yearsVal">10 ans</strong></div>
-      <input type="range" id="years" min="1" max="25" step="1" value="10"/>
-      <div class="slider-ticks"><span>1 an</span><span>5 ans</span><span>15 ans</span><span>25 ans</span></div>
-    </div>
-    <div class="livret-row">
-      <label>🟠 Livret A</label>
-      <input type="number" id="laRate" value="2.4" min="0.1" max="10" step="0.1"/>
-      <span>% / an &nbsp;·&nbsp; Même versement, même durée</span>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title">Résultats projetés</div>
-    <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-label">💰 Capital versé</div><div class="kpi-value purple" id="kpiInvested">—</div></div>
-      <div class="kpi"><div class="kpi-label">📈 Gains ETF</div><div class="kpi-value teal" id="kpiGains">—</div></div>
-      <div class="kpi"><div class="kpi-label">🏆 Total ETF</div><div class="kpi-value white" id="kpiTotal">—</div></div>
-      <div class="kpi"><div class="kpi-label">🟠 Total Livret A</div><div class="kpi-value orange" id="kpiLA">—</div></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title">Évolution du capital</div>
-    <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
-  </div>
-  <footer>Simulation indicative · Rendements non garantis · Investir comporte des risques</footer>
-</div>
-</div>
-
-<!-- ── Scénarios ── -->
-<div id="tab-scenarios" class="panel">
-<div class="wrapper">
-  <div class="card">
-    <div class="card-title">Comparer trois versements mensuels</div>
-    <div class="scenarios-controls">
-      <div class="scenario-box s1"><label>🟣 Scénario 1</label><input type="number" id="sc1" value="50" min="1" max="5000"/><div class="scenario-suffix">€ / mois</div></div>
-      <div class="scenario-box s2"><label>🟢 Scénario 2</label><input type="number" id="sc2" value="75" min="1" max="5000"/><div class="scenario-suffix">€ / mois</div></div>
-      <div class="scenario-box s3"><label>🔴 Scénario 3</label><input type="number" id="sc3" value="100" min="1" max="5000"/><div class="scenario-suffix">€ / mois</div></div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-      <div class="control-group" style="margin:0"><div class="control-label"><span>Rendement</span><strong id="scRateVal">7 %</strong></div><input type="range" id="scRate" min="3" max="15" step="0.5" value="7"/><div class="slider-ticks"><span>3 %</span><span>15 %</span></div></div>
-      <div class="control-group" style="margin:0"><div class="control-label"><span>Durée</span><strong id="scYearsVal">20 ans</strong></div><input type="range" id="scYears" min="1" max="25" step="1" value="20"/><div class="slider-ticks"><span>1 an</span><span>25 ans</span></div></div>
-    </div>
-  </div>
-  <div class="card"><div class="card-title">Évolution comparée</div><div class="chart-wrap"><canvas id="scChart"></canvas></div></div>
-  <div class="card">
-    <div class="card-title">Tableau de synthèse</div>
-    <div style="overflow-x:auto;"><table class="compare-table"><thead><tr><th>Année</th><th class="s1-col" id="th1">50 €/mois</th><th class="s2-col" id="th2">75 €/mois</th><th class="s3-col" id="th3">100 €/mois</th></tr></thead><tbody id="compareBody"></tbody></table></div>
-  </div>
-  <footer>Simulation indicative · Rendements non garantis</footer>
-</div>
-</div>
-
-<!-- ── Mon ETF ── -->
-<div id="tab-etf" class="panel">
-<div class="wrapper">
-  <div class="card">
-    <div class="card-title">🌿 Amundi S&amp;P Eurozone PAB Net Zero Ambition</div>
-    <div class="pabz-hero">
-      <div class="pabz-label">🌿 PAB · Zone Euro · ISR · Accords de Paris</div>
-      <div class="pabz-name">Amundi S&amp;P Eurozone PAB Net Zero Ambition</div>
-      <div class="pabz-isin">EPAB &nbsp;·&nbsp; ISIN LU2195226068 &nbsp;·&nbsp; Euronext Paris</div>
-      <div class="pabz-stats">
-        <div class="pabz-stat"><div class="pabz-stat-label">Cours EPAB <span id="etfCoursSource" style="font-size:.5rem;opacity:.7"></span></div><div class="pabz-stat-value" id="etfPrix" style="color:var(--accent2)">—</div></div>
-        <div class="pabz-stat"><div class="pabz-stat-label">Frais TER</div><div class="pabz-stat-value" style="color:var(--accent4)">0,20 %/an</div></div>
-        <div class="pabz-stat">
-          <div class="pabz-stat-label">Perf. réelle 1 an ✏️</div>
-          <div style="display:flex;align-items:baseline;gap:3px;">
-            <input type="number" id="etfPerf1YInput" placeholder="—" step="0.01"
-              style="width:68px;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.2);color:var(--green);font-size:.95rem;font-weight:800;text-align:right;outline:none;padding:0 2px;"
-              oninput="saveEtfPerf1Y()"/>
-            <span style="font-size:.72rem;color:var(--muted);">%/an</span>
+    <main class="main">
+      <!-- DASHBOARD -->
+      <div id="section-dashboard" class="section active">
+        <div class="page-header">
+          <div class="page-title">Tableau de bord</div>
+          <div class="page-sub" id="dashDate">—</div>
+        </div>
+        <div class="page-body">
+          <div class="kpi-grid">
+            <div class="kpi-card accent">
+              <div class="kpi-label">Total investi</div>
+              <div class="kpi-value" id="kpiTotal">—</div>
+              <div class="kpi-sub">Montant cumulé</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Nb d'achats</div>
+              <div class="kpi-value" id="kpiCount">—</div>
+              <div class="kpi-sub">Opérations EPAB</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Parts achetées</div>
+              <div class="kpi-value" id="kpiShares">—</div>
+              <div class="kpi-sub">Unités EPAB.PA</div>
+            </div>
+            <div class="kpi-card gold">
+              <div class="kpi-label">Prix moyen</div>
+              <div class="kpi-value" id="kpiAvg">—
+              <div class="kpi-sub">€ / part EPAB</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Évolution des investissements</div>
+                <div class="card-sub">Montant cumulé dans le temps</div>
+              </div>
+            </div>
+            <canvas id="chartEvolution" height="120"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Derniers achats</div></div>
+            <div id="recentContainer"><div class="loading"><div class="spinner"></div> Chargement…</div></div>
           </div>
         </div>
-        <div class="pabz-stat"><div class="pabz-stat-label" id="etfDCALabel">DCA mensuel</div><div class="pabz-stat-value" id="etfDCA" style="color:var(--accent)">—</div></div>
-        <div class="pabz-stat"><div class="pabz-stat-label">Cash épargné</div><div class="pabz-stat-value" id="etfCash" style="color:var(--accent4)">—</div></div>
-        <div class="pabz-stat"><div class="pabz-stat-label">Tirelire part supp.</div><div class="pabz-stat-value" id="etfTirelire" style="color:var(--accent2)">—</div></div>
       </div>
-      <div class="pabz-desc">ETF Amundi aligné sur les <strong style="color:var(--text)">Accords de Paris (PAB)</strong> — suit les entreprises de la zone euro avec une trajectoire de réduction carbone de −7 %/an. Exclut les secteurs fossiles, armes et tabac. <strong style="color:var(--green)">Labellisé ISR · Éligible PEA</strong>.</div>
-    </div>
-    <div id="etfProjection"></div>
-  </div>
-  <div class="card">
-    <div class="card-title">📊 Évolution du cours EPAB.PA</div>
-    <div class="period-btns">
-      <button class="period-btn active" onclick="loadEtfChart('1A',this)">1 A</button>
-      <button class="period-btn" onclick="loadEtfChart('1M',this)">1 M</button>
-      <button class="period-btn" onclick="loadEtfChart('1S',this)">1 S</button>
-    </div>
-    <div class="etf-live-row">
-      <div>
-        <div style="font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;">Cours EPAB · Temps réel</div>
-        <div class="etf-live-price" id="etfLivePrice">—</div>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;">Perf. depuis 1er achat</div>
-        <div id="etfPerfFirst" class="etf-perf-badge">—</div>
-        <div style="font-size:.6rem;color:var(--muted);margin-top:4px;">09/06/2026 · PRU 42,03 €</div>
-      </div>
-    </div>
-    <div class="chart-wrap" id="etfMarketWrap"><canvas id="etfMarketChart"></canvas></div>
-    <div class="etf-chart-info" id="etfChartInfo">Yahoo Finance · chargement…</div>
-  </div>
-  <div class="note" id="etfNote">Saisis le cours EPAB dans l'onglet Mon PEA → Valorisation pour voir les calculs en temps réel.</div>
-  <footer>Données indicatives · Performances passées ne présagent pas des performances futures</footer>
-</div>
-</div>
 
-<!-- ── Mon PEA ── -->
-<div id="tab-pea" class="panel">
-<div class="wrapper">
-  <div class="card">
-    <div class="card-title">Mon portefeuille réel</div>
-    <div class="sync-badge" style="margin-bottom:16px;"><span class="sync-dot"></span>Synchronisé en temps réel · PC &amp; Mobile</div>
-    <div class="pea-kpi-grid">
-      <div class="kpi"><div class="kpi-label">💰 Total investi</div><div class="kpi-value teal" id="pkpiTotal">—</div></div>
-      <div class="kpi"><div class="kpi-label">🧾 Nb d'achats</div><div class="kpi-value white" id="pkpiCount">—</div></div>
-      <div class="kpi"><div class="kpi-label">📅 Dernier achat</div><div class="kpi-value purple" id="pkpiLast">—</div></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">🐷 Stratégie Tirelire EPAB</div>
-    <div class="tl-grid">
-      <div class="tl-row" style="border-color:rgba(0,212,170,.25);background:rgba(0,212,170,.04);">
-        <span>🗓️ Plan programmé PEA · 16<sup>e</sup> du mois</span>
-        <strong style="color:var(--accent2);font-size:.82rem;">Trade Republic</strong>
-      </div>
-      <div class="tl-row">
-        <span>💶 Budget mensuel</span>
-        <strong style="display:flex;align-items:center;gap:5px;">
-          <input type="number" id="tlBudgetInput" value="50" min="1" step="1"
-            style="width:65px;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.25);color:inherit;font:inherit;font-weight:700;text-align:right;outline:none;padding:0 2px;"
-            oninput="monthlyBudgetDCA=parseFloat(this.value)||50;updateTirelire();updateEtfTab();"/>
-          €
-        </strong>
-      </div>
-      <div class="tl-row"><span>📌 Prix EPAB (cours actuel)</span><strong id="tlPrix">—</strong></div>
-      <div class="tl-row tl-parts"><span>🛒 Parts achetées / mois</span><strong id="tlParts">—</strong></div>
-      <div class="tl-row tl-cash"><span>💸 Cash épargné / achat</span><strong id="tlCash">—</strong></div>
-      <div class="tl-row tl-pea-cash" id="tlCashRow">
-        <span>💰 Cash cumulé PEA</span>
-        <strong style="display:flex;align-items:center;gap:5px;">
-          <input type="number" id="tlCashInput" placeholder="0.00" min="0" step="0.01"
-            style="width:75px;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.25);color:inherit;font:inherit;font-weight:700;text-align:right;outline:none;padding:0 2px;"
-            oninput="savePeaCash();updateTirelireCash()"/>
-          €
-        </strong>
-      </div>
-      <div class="tl-row" id="tlSeuilRow"><span>🎯 Tirelire pleine → part supp.</span><strong id="tlSeuil">—</strong></div>
-      <div class="tl-progress-wrap" id="tlProgressWrap" style="display:none;">
-        <div class="tl-progress-bar" id="tlProgressBar"></div>
-      </div>
-    </div>
-    <div class="tl-status-ok" id="tlStatusOk">🎯 Tirelire pleine ! Tu peux racheter une part supplémentaire ce mois-ci. 🎉</div>
-    <div class="tl-note" id="tlNote" style="margin-top:10px;">Saisis le cours EPAB dans la section Valorisation pour voir les calculs en temps réel.</div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">💹 Valorisation du portefeuille</div>
-    <div class="valo-grid">
-      <div class="valo-input-group">
-        <label>Cours actuel EPAB (€)</label>
-        <div class="valo-input-wrap">
-          <input type="number" id="valoCours" placeholder="40.00" min="0" step="0.01" oninput="saveValo()"/>
-          <span class="unit">€</span>
+      <!-- MON PEA -->
+      <div id="section-pea" class="section">
+        <div class="page-header">
+          <div class="page-title">Mon PEA</div>
+          <div class="page-sub">ETF Amundi S&amp;P Eurozone Climate — EPAB.PA (LU2195226068)</div>
         </div>
-        <div class="valo-hint" id="valoHint">Saisie manuelle · <a href="https://www.google.com/finance/quote/EPAB:EPA" target="_blank" rel="noopener">🔍 EPAB sur Google Finance</a> · Réf. ≈ 40,00 €</div>
-      </div>
-      <div class="valo-input-group">
-        <label>Nombre de parts total</label>
-        <div class="valo-input-wrap">
-          <input type="number" id="valoParts" placeholder="0.0000" min="0" step="0.0001" oninput="saveValo()"/>
-          <span class="unit">parts</span>
+        <div class="page-body">
+          <div class="add-form">
+            <div class="form-field">
+              <label>Date</label>
+              <input type="date" id="fDate">
+            </div>
+            <div class="form-field">
+              <label>Montant (€)</label>
+              <input type="number" id="fAmount" placeholder="40" min="1" step="0.01">
+            </div>
+            <div class="form-field">
+              <label>Nb de parts</label>
+              <input type="number" id="fShares" placeholder="0.0000" min="0" step="0.0001">
+            </div>
+            <div class="form-field">
+              <label>Note (optionnel)</label>
+              <input type="text" id="fNote" placeholder="ex: DCA mensuel juin">
+            </div>
+            <button class="btn-add" id="btnAdd" onclick="addPurchase()">+ Ajouter</button>
+          </div>
+          <div class="card" style="padding:0; overflow:hidden;">
+            <div style="padding:20px 24px 16px; border-bottom:1px solid var(--border);">
+              <div class="card-title">Historique des achats</div>
+            </div>
+            <div id="purchasesContainer">
+              <div class="loading"><div class="spinner"></div> Chargement…</div>
+            </div>
+          </div>
         </div>
-        <button class="btn-autofill" onclick="autofillParts()">↻ Calculer depuis mes achats</button>
       </div>
-    </div>
-    <div class="valo-kpi-grid">
-      <div class="kpi"><div class="kpi-label">📦 Valeur actuelle</div><div class="kpi-value white" id="vkpiValeur">—</div></div>
-      <div class="kpi"><div class="kpi-label">💸 Plus-value €</div><div class="kpi-value white" id="vkpiPvEur">—</div></div>
-      <div class="kpi"><div class="kpi-label">📊 Plus-value %</div><div class="kpi-value white" id="vkpiPvPct">—</div></div>
-      <div class="kpi"><div class="kpi-label">⚖️ Prix de revient</div><div class="kpi-value purple" id="vkpiPru">—</div></div>
-    </div>
-    <div class="valo-last-update" id="valoLastUpdate"></div>
-  </div>
 
-  <div class="card">
-    <div class="card-title">Enregistrer un achat EPAB</div>
-    <div class="add-form" style="grid-template-columns:1fr 1fr auto;">
-      <div class="form-group">
-        <label>Date <span style="font-weight:400;opacity:.6">(auto)</span></label>
-        <input type="date" id="fDate"/>
+      <!-- SIMULATEUR -->
+      <div id="section-simulator" class="section">
+        <div class="page-header">
+          <div class="page-title">Simulateur DCA</div>
+          <div class="page-sub">Projetez la croissance de votre portefeuille sur le long terme</div>
+        </div>
+        <div class="page-body">
+          <div class="sim-grid">
+            <div class="card">
+              <div class="card-title" style="margin-bottom:20px;">Paramètres</div>
+              <div class="sim-inputs">
+                <div class="range-field">
+                  <label>Apport mensuel <span id="sLabelBudget">100 €</span></label>
+                  <input type="range" id="sBudget" min="10" max="1000" step="10" value="100" oninput="updateSim()">
+                </div>
+                <div class="range-field">
+                  <label>Durée <span id="sLabelDuration">10 ans</span></label>
+                  <input type="range" id="sDuration" min="1" max="30" step="1" value="10" oninput="updateSim()">
+                </div>
+                <div class="range-field">
+                  <label>Rendement annuel <span id="sLabelRate">7 %</span></label>
+                  <input type="range" id="sRate" min="1" max="20" step="0.5" value="7" oninput="updateSim()">
+                </div>
+                <div class="range-field">
+                  <label>Prix actuel ETF (€) <span id="sLabelPrice">50 €</span></label>
+                  <input type="range" id="sPrice" min="1" max="500" step="0.5" value="50" oninput="updateSim()">
+                </div>
+              </div>
+              <div class="sim-result">
+                <div class="result-item">
+                  <div class="result-label">Total investi</div>
+                  <div class="result-value" id="rInvested">—</div>
+                </div>
+                <div class="result-item">
+                  <div class="result-label">Valeur finale</div>
+                  <div class="result-value green" id="rFinal">—</div>
+                </div>
+                <div class="result-item">
+                  <div class="result-label">Plus-value</div>
+                  <div class="result-value gold" id="rGain">—</div>
+                </div>
+                <div class="result-item">
+                  <div class="result-label">Parts acquises</div>
+                  <div class="result-value" id="rShares">—</div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Projection</div>
+                  <div class="card-sub">Valeur du portefeuille dans le temps</div>
+                </div>
+              </div>
+              <canvas id="chartSimulator" height="240"></canvas>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="form-group">
-        <label>Nb de parts achetées</label>
-        <input type="number" id="fShares" placeholder="Ex: 1" min="1" step="1" oninput="previewAmount()"/>
-      </div>
-      <button class="btn-add" id="btnAdd" onclick="addPurchase()">＋ Ajouter</button>
-    </div>
-    <div style="margin-top:10px;font-size:.78rem;color:var(--muted);background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.15);border-radius:9px;padding:9px 13px;">
-      Montant auto-calcule : <strong id="fAmountPreview" style="color:var(--accent2)">—</strong>
-      &nbsp;·&nbsp; Cours : <strong id="fCoursPreview" style="color:var(--accent2)">—</strong>
-    </div>
-  </div>
 
-  <div class="card">
-    <div class="card-title">Historique des achats</div>
-    <div id="purchasesContainer"><div class="loading"><span class="spinner"></span>Chargement…</div></div>
+      <!-- MON ETF -->
+      <div id="section-etf" class="section">
+        <div class="page-header">
+          <div class="page-title">Mon ETF</div>
+          <div class="page-sub">EPAB.PA — Amundi S&amp;P Eurozone PAB UCITS ETF · LU2195226068</div>
+        </div>
+        <div class="page-body">
+          <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);">
+            <div class="kpi-card accent">
+              <div class="kpi-label">Cours live</div>
+              <div class="kpi-value" id="etfLivePrice">—</div>
+              <div class="kpi-sub">EPAB.PA · Euronext Paris</div>
+            </div>
+            <div class="kpi-card" id="etfPerfCard">
+              <div class="kpi-label">Perf. depuis 1er achat</div>
+              <div class="kpi-value" id="etfPerfFirst">—</div>
+              <div class="kpi-sub">PRU 42,03 € · 09/06/2026</div>
+            </div>
+            <div class="kpi-card gold">
+              <div class="kpi-label">TER (frais annuels)</div>
+              <div class="kpi-value">0,20 %</div>
+              <div class="kpi-sub">Amundi ETF</div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+              <div style="font-size:22px;">🗓️</div>
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:600;">Plan programmé PEA</div>
+                <div style="font-size:12px;color:var(--text-sub);margin-top:2px;">16ᵉ du mois · Trade Republic · 50 €/mois · 0 € de frais</div>
+              </div>
+              <span class="badge badge-green">Actif</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Cours EPAB.PA</div>
+                <div class="card-sub" id="etfChartSub">Données Yahoo Finance</div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button class="btn-period active" id="btn1A" onclick="loadEtfChart('1A',this)">1A</button>
+                <button class="btn-period" id="btn1M" onclick="loadEtfChart('1M',this)">1M</button>
+                <button class="btn-period" id="btn1S" onclick="loadEtfChart('1S',this)">1S</button>
+              </div>
+            </div>
+            <div id="etfChartLoader" class="loading"><div class="spinner"></div> Chargement…</div>
+            <canvas id="etfMarketChart" style="display:none;"></canvas>
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
-  <footer>Données synchronisées · Supabase · HTTPS</footer>
 </div>
-</div>
-</div>
+
+<div id="toast"></div>
+
+<!-- BOTTOM NAV (mobile) -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-items">
+    <button class="bottom-nav-item active" id="bn-dashboard" onclick="showSection('dashboard',this,'bn')">
+      <span class="bn-icon">🏠</span>Accueil
+    </button>
+    <button class="bottom-nav-item" id="bn-pea" onclick="showSection('pea',this,'bn')">
+      <span class="bn-icon">💼</span>Mon PEA
+    </button>
+    <button class="bottom-nav-item" id="bn-simulator" onclick="showSection('simulator',this,'bn')">
+      <span class="bn-icon">🧮</span>Simulateur
+    </button>
+    <button class="bottom-nav-item" id="bn-etf" onclick="showSection('etf',this,'bn')">
+      <span class="bn-icon">📊</span>Mon ETF
+    </button>
+  </div>
+</nav>
 
 <script>
-// ══════════════════════════════════
-// SUPABASE
-// ══════════════════════════════════
 const SUPABASE_URL      = 'https://xzbhwitgutkwaomjuzcz.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6Ymh3aXRndXRrd2FvbWp1emN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDgzNzYsImV4cCI6MjA5NDYyNDM3Nn0.zoUMKjYCRAVgzuEscnhHvzdTbCV8x8ronvERq94tx_A';
+const SUPABASE_ANON_KEY = 'eyJhbGIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6Ymh3aXRndXRrd2FvbWp1emN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDgzNzYsImV4cCI6MjA5NDYyNDM3Nn0.zoUMKjYCRAVgzuEscnhHvzdTbCV8x8ronvERq94tx_A';
+
 const { createClient } = window.supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let currentUser = null, rtChannel = null, peaTotal = 0, lastData = [];
-let currentEpabPrice = 40, monthlyBudgetDCA = 50, currentEpabPerf1Y = null;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+});
 
-// ══════════════════════════════════
+let currentUser = null;
+let allPurchases = [];
+let chartEvol = null;
+let chartSim  = null;
+
 // AUTH
-// ══════════════════════════════════
-async function initAuth(){
-  const { data:{ session } } = await db.auth.getSession();
-  if(session?.user){ currentUser=session.user; showApp(); }
-  else showAuth();
-  db.auth.onAuthStateChange((_e,session)=>{
-    if(session?.user){ currentUser=session.user; showApp(); }
-    else { currentUser=null; showAuth(); }
+async function initAuth() {
+  const { data: { session } } = await db.auth.getSession();
+  if (session?.user) { currentUser = session.user; showApp(); }
+  else { showAuthScreen(); }
+
+  db.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session) { currentUser = session.user; showApp(); }
+    else if (event === 'SIGNED_OUT') { currentUser = null; showAuthScreen(); }
   });
 }
 
-function showAuth(){
-  document.getElementById('authScreen').style.display='flex';
-  document.getElementById('mainApp').style.display='none';
-  if(rtChannel){ db.removeChannel(rtChannel); rtChannel=null; }
-  // Pré-remplir email depuis localStorage pour éviter saisie répétée
+function triggerLogin() {
+  setTimeout(doLogin, 120);
+}
+
+async function doLogin() {
+  const email    = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl    = document.getElementById('authError');
+  const btn      = document.getElementById('btnLogin');
+  errEl.style.display = 'none';
+  if (!email || !password) {
+    errEl.textContent = 'Veuillez renseigner email et mot de passe.';
+    errEl.style.display = 'block'; return;
+  }
+  btn.disabled = true; btn.textContent = 'Connexion…';
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  if (error) {
+    errEl.textContent = 'Email ou mot de passe incorrect.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Se connecter';
+  } else {
+    localStorage.setItem('pabz_lastEmail', email);
+  }
+}
+
+async function doLogout() { await db.auth.signOut(); }
+
+function showAuthScreen() {
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
   const saved = localStorage.getItem('pabz_lastEmail');
-  if(saved){
+  if (saved) {
     const emailInput = document.getElementById('loginEmail');
-    if(emailInput){ emailInput.value = saved; }
-    setTimeout(()=>{ const pw=document.getElementById('loginPassword'); if(pw) pw.focus(); }, 150);
+    if (emailInput) { emailInput.value = saved; }
+    setTimeout(() => { const pw = document.getElementById('loginPassword'); if (pw) pw.focus(); }, 150);
   }
 }
 
-function showApp(){
-  document.getElementById('authScreen').style.display='none';
-  document.getElementById('mainApp').style.display='block';
-  document.getElementById('userEmail').textContent=currentUser.email;
-  document.getElementById('fDate').value=new Date().toISOString().split('T')[0];
-  updateMain();
-  loadValo();
-  fetchEpabPrice();
-  subscribeRT();
-  renderPurchases();
-}
-
-function switchTab(tab,btn){
-  document.querySelectorAll('.auth-tab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('loginForm').style.display=tab==='login'?'block':'none';
-  document.getElementById('signupForm').style.display=tab==='signup'?'block':'none';
-  document.getElementById('authError').style.display='none';
-  document.getElementById('authSuccess').style.display='none';
-}
-
-function authErr(msg){ const e=document.getElementById('authError'); e.textContent=msg; e.style.display='block'; document.getElementById('authSuccess').style.display='none'; }
-function authOk(msg) { const e=document.getElementById('authSuccess'); e.textContent=msg; e.style.display='block'; document.getElementById('authError').style.display='none'; }
-
-async function doLogin(){
-  const email=document.getElementById('loginEmail').value.trim();
-  const pw=document.getElementById('loginPassword').value;
-  if(!email||!pw){ authErr('Remplis tous les champs.'); return; }
-  const btn=document.getElementById('btnLogin');
-  btn.disabled=true; btn.textContent='Connexion…';
-  const { error }=await db.auth.signInWithPassword({ email, password:pw });
-  btn.disabled=false; btn.textContent='Se connecter';
-  if(error){ authErr(error.message==='Invalid login credentials'?'Email ou mot de passe incorrect.':error.message); }
-  else { localStorage.setItem('pabz_lastEmail', email); }
-}
-
-async function doSignup(){
-  const email=document.getElementById('signupEmail').value.trim();
-  const pw=document.getElementById('signupPassword').value;
-  if(!email||!pw){ authErr('Remplis tous les champs.'); return; }
-  if(pw.length<6){ authErr('Mot de passe trop court (6 caractères minimum).'); return; }
-  const btn=document.getElementById('btnSignup');
-  btn.disabled=true; btn.textContent='Création…';
-  const { error }=await db.auth.signUp({ email, password:pw });
-  btn.disabled=false; btn.textContent='Créer mon compte';
-  if(error) authErr(error.message);
-  else authOk('✅ Compte créé ! Tu peux maintenant te connecter.');
-}
-
-async function doReset(){
-  const email=document.getElementById('loginEmail').value.trim();
-  if(!email){ authErr('Entre ton email ci-dessus d\'abord.'); return; }
-  const { error }=await db.auth.resetPasswordForEmail(email,{
-    redirectTo:'https://francky-invest.github.io/dca-pea/'
-  });
-  if(error) authErr(error.message);
-  else authOk('📧 Email de réinitialisation envoyé ! Vérifie ta boîte Gmail.');
-}
-
-async function doLogout(){ await db.auth.signOut(); }
-
-// ══════════════════════════════════
-// TABS
-// ══════════════════════════════════
-function showTab(id,btn){
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-'+id).classList.add('active');
-  btn.classList.add('active');
-  if(id==='scenarios') updateScenarios();
-  if(id==='etf'){ renderEtfProjection(); updateEtfTab(); loadEtfChart(currentEtfPeriod); }
-  if(id==='pea')       renderPurchases();
-}
-
-// ══════════════════════════════════
-// HELPERS
-// ══════════════════════════════════
-const fmt     = v=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);
-const fmtDec  = v=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format(v);
-const fmtShort= v=>v>=1000?(v/1000).toFixed(1)+' k€':fmt(v);
-
-function dca(monthly,annualRate,years){
-  const r=annualRate/100/12,labels=[],invested=[],total=[];
-  for(let y=1;y<=years;y++){
-    const m=y*12;
-    labels.push(String(2025+y));
-    invested.push(+(monthly*m).toFixed(2));
-    total.push(+(monthly*((Math.pow(1+r,m)-1)/r)).toFixed(2));
-  }
-  return {labels,invested,total};
-}
-
-function setSliderFill(el,min,max,color){
-  const pct=((el.value-min)/(max-min))*100;
-  el.style.background=`linear-gradient(to right,${color} ${pct}%,var(--surface) ${pct}%)`;
-}
-
-// ══════════════════════════════════
-// SIMULATEUR
-// ══════════════════════════════════
-const ctx1=document.getElementById('mainChart').getContext('2d');
-const gInv=ctx1.createLinearGradient(0,0,0,280); gInv.addColorStop(0,'rgba(108,99,255,.55)'); gInv.addColorStop(1,'rgba(108,99,255,.05)');
-const gGain=ctx1.createLinearGradient(0,0,0,280); gGain.addColorStop(0,'rgba(0,212,170,.55)'); gGain.addColorStop(1,'rgba(0,212,170,.05)');
-const mainChart=new Chart(ctx1,{
-  type:'bar',data:{labels:[],datasets:[
-    {label:'Capital versé',data:[],backgroundColor:gInv,borderColor:'#6c63ff',borderWidth:2,borderRadius:5,stack:'a',order:2},
-    {label:'Gains ETF',data:[],backgroundColor:gGain,borderColor:'#00d4aa',borderWidth:2,borderRadius:5,stack:'a',order:2},
-    {label:'Livret A',data:[],borderColor:'#ff9f43',borderWidth:2,type:'line',fill:false,tension:.35,pointRadius:2,order:1}
-  ]},
-  options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-    plugins:{legend:{labels:{color:'#8890a4',font:{size:11,weight:'600'},boxWidth:12,boxHeight:12,borderRadius:4}},
-    tooltip:{backgroundColor:'#1a1f35',borderColor:'rgba(255,255,255,.08)',borderWidth:1,titleColor:'#e8eaf0',bodyColor:'#8890a4',padding:12,callbacks:{label:c=>` ${c.dataset.label} : ${fmt(c.raw)}`}}},
-    scales:{x:{stacked:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8890a4',font:{size:10}}},y:{stacked:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8890a4',font:{size:10},callback:v=>fmtShort(v)}}}}
-});
-
-function updateMain(){
-  const monthly=parseFloat(document.getElementById('monthly').value)||50;
-  const rate=parseFloat(document.getElementById('rate').value);
-  const years=parseInt(document.getElementById('years').value);
-  const laRate=parseFloat(document.getElementById('laRate').value)||2.4;
-  document.getElementById('rateVal').textContent=`${rate} %`;
-  document.getElementById('yearsVal').textContent=`${years} an${years>1?'s':''}`;
-  setSliderFill(document.getElementById('rate'),3,15,'var(--accent)');
-  setSliderFill(document.getElementById('years'),1,25,'var(--accent2)');
-  const {labels,invested,total}=dca(monthly,rate,years);
-  const {total:laTotal}=dca(monthly,laRate,years);
-  const gains=total.map((t,i)=>+(t-invested[i]).toFixed(2));
-  const li=invested[invested.length-1],lt=total[total.length-1];
-  document.getElementById('kpiInvested').textContent=fmt(li);
-  document.getElementById('kpiGains').textContent=fmt(lt-li);
-  document.getElementById('kpiTotal').textContent=fmt(lt);
-  document.getElementById('kpiLA').textContent=fmt(laTotal[laTotal.length-1]);
-  mainChart.data.labels=labels; mainChart.data.datasets[0].data=invested;
-  mainChart.data.datasets[1].data=gains; mainChart.data.datasets[2].data=laTotal;
-  mainChart.update('active');
-}
-['monthly','rate','years','laRate'].forEach(id=>document.getElementById(id).addEventListener('input',updateMain));
-
-// ══════════════════════════════════
-// SCÉNARIOS
-// ══════════════════════════════════
-const ctx2=document.getElementById('scChart').getContext('2d');
-const scChart=new Chart(ctx2,{type:'line',data:{labels:[],datasets:[
-  {label:'Scénario 1',data:[],borderColor:'#6c63ff',backgroundColor:'rgba(108,99,255,.1)',fill:true,tension:.35,borderWidth:3,pointRadius:2},
-  {label:'Scénario 2',data:[],borderColor:'#00d4aa',backgroundColor:'rgba(0,212,170,.1)',fill:true,tension:.35,borderWidth:3,pointRadius:2},
-  {label:'Scénario 3',data:[],borderColor:'#ff6b6b',backgroundColor:'rgba(255,107,107,.1)',fill:true,tension:.35,borderWidth:3,pointRadius:2}
-]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-  plugins:{legend:{labels:{color:'#8890a4',font:{size:11,weight:'600'},boxWidth:12,boxHeight:12,borderRadius:4}},
-  tooltip:{backgroundColor:'#1a1f35',borderColor:'rgba(255,255,255,.08)',borderWidth:1,titleColor:'#e8eaf0',bodyColor:'#8890a4',padding:12,callbacks:{label:c=>` ${c.dataset.label} : ${fmt(c.raw)}`}}},
-  scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8890a4',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8890a4',font:{size:10},callback:v=>fmtShort(v)}}}}
-});
-
-function updateScenarios(){
-  const s1=parseFloat(document.getElementById('sc1').value)||50;
-  const s2=parseFloat(document.getElementById('sc2').value)||75;
-  const s3=parseFloat(document.getElementById('sc3').value)||100;
-  const rate=parseFloat(document.getElementById('scRate').value);
-  const years=parseInt(document.getElementById('scYears').value);
-  document.getElementById('scRateVal').textContent=`${rate} %`;
-  document.getElementById('scYearsVal').textContent=`${years} an${years>1?'s':''}`;
-  setSliderFill(document.getElementById('scRate'),3,15,'var(--accent)');
-  setSliderFill(document.getElementById('scYears'),1,25,'var(--accent2)');
-  const d1=dca(s1,rate,years),d2=dca(s2,rate,years),d3=dca(s3,rate,years);
-  document.getElementById('th1').textContent=`${s1} €/mois`;
-  document.getElementById('th2').textContent=`${s2} €/mois`;
-  document.getElementById('th3').textContent=`${s3} €/mois`;
-  scChart.data.labels=d1.labels;
-  scChart.data.datasets[0].data=d1.total; scChart.data.datasets[0].label=`${s1} €/mois`;
-  scChart.data.datasets[1].data=d2.total; scChart.data.datasets[1].label=`${s2} €/mois`;
-  scChart.data.datasets[2].data=d3.total; scChart.data.datasets[2].label=`${s3} €/mois`;
-  scChart.update('active');
-  const milestones=years<=10?d1.labels.map((_,i)=>i):[0,4,9,14,19,24].filter(i=>i<years);
-  document.getElementById('compareBody').innerHTML=milestones.map(i=>`<tr><td class="year-col">${2026+i}</td><td class="s1-col">${fmt(d1.total[i])}</td><td class="s2-col">${fmt(d2.total[i])}</td><td class="s3-col">${fmt(d3.total[i])}</td></tr>`).join('');
-}
-['sc1','sc2','sc3','scRate','scYears'].forEach(id=>document.getElementById(id).addEventListener('input',updateScenarios));
-
-// ══════════════════════════════════
-// ETF PROJECTION
-// ══════════════════════════════════
-let etfChartInst=null;
-function renderEtfProjection(){
-  const perfInp=document.getElementById('etfPerf1YInput');
-  const rate=parseFloat(perfInp?.value)||7;
-  const {labels,invested,total}=dca(50,rate,20);
-  const li=invested[19],lt=total[19];
-  document.getElementById('etfProjection').innerHTML=`
-    <div style="margin-top:16px;">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
-        <div class="kpi"><div class="kpi-label">💰 Versé (20 ans)</div><div class="kpi-value purple">${fmt(li)}</div></div>
-        <div class="kpi"><div class="kpi-label">📈 Gains estimés</div><div class="kpi-value teal">${fmt(lt-li)}</div></div>
-        <div class="kpi"><div class="kpi-label">🏆 Valeur finale</div><div class="kpi-value white">${fmt(lt)}</div></div>
-      </div>
-      <div class="chart-wrap" style="height:220px;"><canvas id="etfChart"></canvas></div>
-    </div>`;
-  const ctx3=document.getElementById('etfChart').getContext('2d');
-  if(etfChartInst) etfChartInst.destroy();
-  const gains=total.map((t,j)=>+(t-invested[j]).toFixed(2));
-  const gI=ctx3.createLinearGradient(0,0,0,220); gI.addColorStop(0,'rgba(108,99,255,.55)'); gI.addColorStop(1,'rgba(108,99,255,.05)');
-  const gG=ctx3.createLinearGradient(0,0,0,220); gG.addColorStop(0,'rgba(0,212,170,.55)'); gG.addColorStop(1,'rgba(0,212,170,.05)');
-  etfChartInst=new Chart(ctx3,{type:'bar',data:{labels,datasets:[
-    {label:'Capital versé',data:invested,backgroundColor:gI,borderColor:'#6c63ff',borderWidth:2,borderRadius:5,stack:'a'},
-    {label:'Gains estimés',data:gains,backgroundColor:gG,borderColor:'#00d4aa',borderWidth:2,borderRadius:5,stack:'a'}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8890a4',font:{size:10},boxWidth:10,boxHeight:10,borderRadius:3}},tooltip:{backgroundColor:'#1a1f35',borderColor:'rgba(255,255,255,.08)',borderWidth:1,titleColor:'#e8eaf0',bodyColor:'#8890a4',padding:10,callbacks:{label:c=>` ${c.dataset.label} : ${fmt(c.raw)}`}}},scales:{x:{stacked:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8890a4',font:{size:9}}},y:{stacked:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8890a4',font:{size:9},callback:v=>fmtShort(v)}}}}});
-}
-
-// ══════════════════════════════════
-// MON PEA — Supabase CRUD
-// ══════════════════════════════════
-function previewAmount(){
-  const shares=parseFloat(document.getElementById('fShares')?.value)||0;
-  const prev=document.getElementById('fAmountPreview');
-  const cprev=document.getElementById('fCoursPreview');
-  if(cprev) cprev.textContent=currentEpabPrice>0?fmtDec(currentEpabPrice):'N/A';
-  if(prev) prev.textContent=shares>0&&currentEpabPrice>0?fmtDec(+(shares*currentEpabPrice).toFixed(2)):'—';
-}
-
-async function addPurchase(){
-  const date=document.getElementById('fDate').value;
-  const shares=parseFloat(document.getElementById('fShares').value);
-  if(!date){ alert('Merci de saisir une date.'); return; }
-  if(!shares||shares<=0){ alert('Saisis le nombre de parts achetees.'); return; }
-  if(currentEpabPrice<=0){ alert('Cours EPAB non disponible.'); return; }
-  const amount=+(shares*currentEpabPrice).toFixed(2);
-  const btn=document.getElementById('btnAdd');
-  btn.disabled=true; btn.textContent='…';
-  const { error }=await db.from('purchases').insert([{user_id:currentUser.id,date,etf:'EPAB',amount,shares}]);
-  btn.disabled=false; btn.textContent='＋ Ajouter';
-  if(error){ alert('Erreur : '+error.message); return; }
-  document.getElementById('fShares').value='';
-  document.getElementById('fAmountPreview').textContent='—';
-  await renderPurchases();
-}
-
-async function deletePurchase(id){
-  if(!confirm('Supprimer cet achat ?')) return;
-  const { error }=await db.from('purchases').delete().eq('id',id);
-  if(error) alert('Erreur : '+error.message);
-  else await renderPurchases();
-}
-
-async function renderPurchases(){
-  const c=document.getElementById('purchasesContainer');
-  c.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
-  const { data,error }=await db.from('purchases').select('*').order('date',{ascending:false});
-  if(error){ c.innerHTML=`<div class="empty-state"><div class="empty-icon">⚠️</div>Erreur de chargement.<br><small>${error.message}</small></div>`; return; }
-  lastData=data;
-  const total=data.reduce((s,p)=>s+Number(p.amount),0), count=data.length;
-  peaTotal=total;
-  document.getElementById('pkpiTotal').textContent=fmtDec(total);
-  // Calcul automatique du cash PEA : (nb achats × budget) - total achats
-  const autoCash=Math.max(0,+(count*monthlyBudgetDCA-total).toFixed(2));
-  const tlCI=document.getElementById('tlCashInput');
-  if(tlCI){ tlCI.value=autoCash.toFixed(2); localStorage.setItem(LS_CASH,tlCI.value); }
-  // Parts réelles : somme des parts enregistrées dans l'historique (priorité absolue)
-  const ep=document.getElementById('valoParts');
-  if(ep){
-    const totalShares=data.reduce((s,p)=>s+Number(p.shares||0),0);
-    if(totalShares>0){
-      // On a des parts réelles enregistrées → on les utilise
-      ep.value=totalShares.toFixed(4); localStorage.setItem(LS_P,ep.value);
-    } else if(!ep.value&&currentEpabPrice>0&&total>0){
-      // Aucune part enregistrée ET champ vide → estimation indicative
-      ep.value=+(total/currentEpabPrice).toFixed(4); localStorage.setItem(LS_P,ep.value);
-    }
-    // Si ep.value déjà renseigné manuellement → on ne touche pas
-  }
-  // Mise à jour du hint avec le cours actuel
-  const hint=document.getElementById('valoHint');
-  if(hint&&currentEpabPrice>0&&!hint.innerHTML.includes('automatiquement')){
-    hint.innerHTML=`<a href="https://www.google.com/finance/quote/EPAB:EPA" target="_blank" rel="noopener">🔍 EPAB sur Google Finance</a> · Cours actuel : <strong>${fmtDec(currentEpabPrice)}</strong>`;
-  }
-  document.getElementById('pkpiCount').textContent=count;
-  document.getElementById('pkpiLast').textContent=count?new Date(data[0].date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):'—';
-  if(count===0){ c.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div>Aucun achat enregistré.<br>Ajoute ton premier versement DCA EPAB !</div>'; updateValo(); return; }
-  c.innerHTML=`<div style="overflow-x:auto;"><table class="purchases-table">
-    <thead><tr><th>Date</th><th>ETF</th><th>Montant</th><th>Parts</th><th></th></tr></thead>
-    <tbody>${data.map(p=>`
-      <tr>
-        <td>${new Date(p.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</td>
-        <td><span class="etf-pill">${p.etf}</span></td>
-        <td class="amount-cell">${fmtDec(p.amount)}</td>
-        <td class="shares-cell">${p.shares??'—'}</td>
-        <td><button class="btn-del" onclick="deletePurchase('${p.id}')">✕</button></td>
-      </tr>`).join('')}
-    </tbody>
-    <tfoot><tr>
-      <td colspan="2" style="padding:11px 10px;color:var(--muted);font-size:.76rem;font-weight:600">TOTAL (${count} achat${count>1?'s':''})</td>
-      <td class="amount-cell" style="padding:11px 10px">${fmtDec(total)}</td>
-      <td colspan="2"></td>
-    </tr></tfoot>
-  </table></div>`;
-  updateValo();
-}
-
-function subscribeRT(){
-  if(rtChannel) db.removeChannel(rtChannel);
-  rtChannel=db.channel('pabz_rt')
-    .on('postgres_changes',{event:'*',schema:'public',table:'purchases',filter:`user_id=eq.${currentUser.id}`},
-      ()=>renderPurchases())
+function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  const email = currentUser.email;
+  document.getElementById('userEmail').textContent = email;
+  document.getElementById('userAvatar').textContent = email.charAt(0).toUpperCase();
+  const now = new Date();
+  document.getElementById('dashDate').textContent =
+    now.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  updateSim();
+  loadAll();
+  db.channel('purchases-ch')
+    .on('postgres_changes', { event:'*', schema:'public', table:'purchases',
+        filter:`user_id=eq.${currentUser.id}` }, () => loadAll())
     .subscribe();
 }
 
-// ══════════════════════════════════
-// VALORISATION (localStorage)
-// ══════════════════════════════════
-const LS_C='pabz_cours', LS_P='pabz_parts', LS_T='pabz_ts', LS_PERF='pabz_perf1y';
-const FRAIS_ORDRE=0; // Trade Republic : investissement programmé GRATUIT (0€ de frais) sur ETF → DCA mensuel = 0€ de frais
-
-function saveEtfPerf1Y(){
-  const v=document.getElementById('etfPerf1YInput')?.value||'';
-  localStorage.setItem(LS_PERF,v);
-  const inp=document.getElementById('etfPerf1YInput');
-  if(inp) inp.style.color=parseFloat(v)>=0?'var(--green)':'var(--accent3)';
-  renderEtfProjection(); // re-calcule le graphique avec le nouveau taux
+function showSection(name, el, source) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.bottom-nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-' + name).classList.add('active');
+  const sideEl = document.getElementById('nav-' + name);
+  const bnEl   = document.getElementById('bn-' + name);
+  if (sideEl) sideEl.classList.add('active');
+  if (bnEl)   bnEl.classList.add('active');
+  if (name === 'etf') loadEtfChart(currentEtfPeriod);
 }
 
-function loadValo(){
-  const ec=document.getElementById('valoCours');
-  const ep=document.getElementById('valoParts');
-  if(ec) ec.value=localStorage.getItem(LS_C)||'';
-  if(ep) ep.value=localStorage.getItem(LS_P)||'';
-  // Charger perf manuelle sauvegardée
-  const savedPerf=localStorage.getItem(LS_PERF)||'';
-  const perfInp=document.getElementById('etfPerf1YInput');
-  if(perfInp&&savedPerf){ perfInp.value=savedPerf; perfInp.style.color=parseFloat(savedPerf)>=0?'var(--green)':'var(--accent3)'; }
-  const saved=parseFloat(localStorage.getItem(LS_C))||0;
-  if(saved>0) currentEpabPrice=saved;
-  const savedCash=localStorage.getItem(LS_CASH)||'';
-  const tlCI=document.getElementById('tlCashInput');
-  if(tlCI&&savedCash) tlCI.value=savedCash;
-  updateValo();
-  updateTirelire();
-  updateEtfTab();
-  previewAmount();
+// DATA
+async function loadAll() {
+  const { data, error } = await db.from('purchases').select('*').order('date', { ascending: false });
+  if (error) { console.error(error); return; }
+  allPurchases = data || [];
+  renderDashboard();
+  renderPurchasesTable();
 }
 
-function saveValo(){
-  const newCours=parseFloat(document.getElementById('valoCours').value)||0;
-  if(newCours>0) currentEpabPrice=newCours;
-  localStorage.setItem(LS_C,document.getElementById('valoCours').value);
-  localStorage.setItem(LS_P,document.getElementById('valoParts').value);
-  localStorage.setItem(LS_T,new Date().toLocaleString('fr-FR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}));
-  updateValo();
-  updateTirelire();
-  updateEtfTab();
-  if(newCours>0){
-    const hint=document.getElementById('valoHint');
-    if(hint) hint.innerHTML=`Saisie manuelle · <a href="https://www.google.com/finance/quote/EPAB:EPA" target="_blank" rel="noopener">🔍 EPAB sur Google Finance</a> · Cours actuel : <strong>${fmtDec(newCours)}</strong>`;
-  }
+// DASHBOARD
+function renderDashboard() {
+  const total  = allPurchases.reduce((s, p) => s + (p.amount || 0), 0);
+  const shares = allPurchases.reduce((s, p) => s + (p.shares || 0), 0);
+  const count  = allPurchases.length;
+  const avg    = shares > 0 ? total / shares : 0;
+  document.getElementById('kpiTotal').textContent  = fmt(total) + ' €';
+  document.getElementById('kpiCount').textContent  = count;
+  document.getElementById('kpiShares').textContent = shares > 0 ? shares.toFixed(4) : '—';
+  document.getElementById('kpiAvg').textContent    = avg > 0 ? fmt(avg) + ' €' : '—';
+  renderEvolutionChart();
+  renderRecent();
 }
 
-function autofillParts(){
-  const withS=lastData.filter(p=>p.shares&&Number(p.shares)>0);
-  const withoutS=lastData.filter(p=>!p.shares||Number(p.shares)===0);
-  const total=withS.reduce((s,p)=>s+Number(p.shares),0);
-  if(total===0){ alert('Aucun achat avec "Nb de parts" renseigné.'); return; }
-  if(withoutS.length>0 && !confirm(`⚠️ ${withoutS.length} achat(s) sans parts.\nTotal : ${total.toFixed(4)} parts. Continuer ?`)) return;
-  document.getElementById('valoParts').value=total.toFixed(4);
-  saveValo();
-}
-
-function updateValo(){
-  const cours=parseFloat(document.getElementById('valoCours')?.value)||0;
-  const parts=parseFloat(document.getElementById('valoParts')?.value)||0;
-  const valeur=cours*parts, pv=valeur-peaTotal;
-  const pvPct=peaTotal>0?(pv/peaTotal)*100:0;
-  const pru=parts>0?peaTotal/parts:0;
-  const ev=document.getElementById('vkpiValeur');
-  const eE=document.getElementById('vkpiPvEur');
-  const eP=document.getElementById('vkpiPvPct');
-  const eR=document.getElementById('vkpiPru');
-  const eT=document.getElementById('valoLastUpdate');
-  if(!ev) return;
-  if(cours>0&&parts>0&&peaTotal>0){
-    ev.textContent=fmtDec(valeur); ev.className='kpi-value white';
-    eE.textContent=(pv>=0?'+':'')+fmtDec(pv); eE.className='kpi-value '+(pv>=0?'positive':'negative');
-    eP.textContent=(pvPct>=0?'+':'')+pvPct.toFixed(2)+' %'; eP.className='kpi-value '+(pvPct>=0?'positive':'negative');
-    eR.textContent=fmtDec(pru)+' / part'; eR.className='kpi-value purple';
-  } else {
-    ['vkpiValeur','vkpiPvEur','vkpiPvPct'].forEach(id=>{ const el=document.getElementById(id); el.textContent='—'; el.className='kpi-value white'; });
-    eR.textContent='—'; eR.className='kpi-value purple';
-  }
-  if(eT) eT.textContent=localStorage.getItem(LS_T)?`Cours saisi le ${localStorage.getItem(LS_T)}`:'';
-}
-
-// ══════════════════════════════════
-// TIRELIRE — CODE COULEUR CASH PEA
-// ══════════════════════════════════
-const LS_CASH='pabz_cashPEA';
-
-function savePeaCash(){
-  localStorage.setItem(LS_CASH, document.getElementById('tlCashInput')?.value||'');
-}
-
-function updateTirelireCash(){
-  const cashInput=document.getElementById('tlCashInput');
-  const cash=parseFloat(cashInput?.value)||0;
-  const cours=parseFloat(document.getElementById('valoCours')?.value)||currentEpabPrice||40;
-  const budget=monthlyBudgetDCA;
-  const partsPerMonth=Math.floor(budget/cours);
-  const cashNeeded=+cours.toFixed(2);
-
-  const cashRow=document.getElementById('tlCashRow');
-  const seuilRow=document.getElementById('tlSeuilRow');
-  const progressWrap=document.getElementById('tlProgressWrap');
-  const progressBar=document.getElementById('tlProgressBar');
-  const tlSeuil=document.getElementById('tlSeuil');
-  const statusOk=document.getElementById('tlStatusOk');
-  if(!seuilRow) return;
-
-  const pct=Math.min((cash/cashNeeded)*100,100);
-  const cashPerMonth=+(budget-partsPerMonth*cours).toFixed(2);
-
-  if(cash>=cashNeeded){
-    // 🟢 VERT — tirelire pleine !
-    if(cashRow) cashRow.className='tl-row tl-ok';
-    seuilRow.className='tl-row tl-ok';
-    if(tlSeuil) tlSeuil.innerHTML='✅ Tirelire pleine !';
-    if(progressWrap) progressWrap.style.display='block';
-    if(progressBar){ progressBar.style.width='100%'; progressBar.style.background='var(--green)'; }
-    if(statusOk) statusOk.style.display='block';
-  } else {
-    // 🟠 ORANGE — insuffisant (même à 0)
-    if(cashRow) cashRow.className='tl-row tl-warn';
-    seuilRow.className='tl-row tl-warn';
-    const manquant=+(cashNeeded-cash).toFixed(2);
-    const moisRestants=cashPerMonth>0?Math.ceil(manquant/cashPerMonth):null;
-    if(tlSeuil) tlSeuil.textContent=cash>0
-      ? `${fmtDec(manquant)} manquants (~${moisRestants} mois) · ${pct.toFixed(0)} %`
-      : `≥ ${fmtDec(cashNeeded)} requis (~${moisRestants} mois)`;
-    if(progressWrap) progressWrap.style.display=cash>0?'block':'none';
-    if(progressBar&&cash>0){ progressBar.style.width=pct+'%'; progressBar.style.background='linear-gradient(to right,var(--accent4),#ffb347)'; }
-    if(statusOk) statusOk.style.display='none';
-  }
-}
-
-// ══════════════════════════════════
-// FETCH COURS EPAB (Yahoo Finance)
-// ══════════════════════════════════
-async function fetchEpabPrice(){
-  // ── Fetch 1 : prix actuel via proxy CORS (contourne les restrictions navigateur) ──
-  const YAHOO_URL='https://query1.finance.yahoo.com/v8/finance/chart/EPAB.PA?interval=1d&range=5d';
-  const PROXY='https://api.allorigins.win/raw?url=';
-  try{
-    const r=await fetch(PROXY+encodeURIComponent(YAHOO_URL),
-      {signal:AbortSignal.timeout?AbortSignal.timeout(8000):undefined});
-    const j=await r.json();
-    const p=j?.chart?.result?.[0]?.meta?.regularMarketPrice;
-    if(p&&p>0){
-      currentEpabPrice=p;
-      const ec=document.getElementById('valoCours');
-      const ts=new Date().toLocaleString('fr-FR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-      // Toujours mettre à jour le cours et les indicateurs visuels
-      if(ec){ ec.value=p.toFixed(2); }
-      localStorage.setItem(LS_C,p.toFixed(2));
-      localStorage.setItem(LS_T,ts);
-      const src=document.getElementById('etfCoursSource');
-      if(src) src.textContent='· auto';
-      const hint=document.querySelector('.valo-hint');
-      if(hint) hint.innerHTML=`🔄 Cours récupéré automatiquement · <a href="https://www.google.com/finance/quote/EPAB:EPA" target="_blank" rel="noopener">🔍 Google Finance</a> · Mis à jour : <strong>${ts}</strong>`;
-      updateValo();
-      // Mise à jour de l'affichage cours live dans la card graphique ETF
-      updateEtfLiveDisplay(p);
-    }
-  }catch(e){ /* fallback silencieux */ }
-
-  // ── Fetch 2 : perf 1 an via timestamps Unix + hebdo (~52 points, fiable) ──
-  try{
-    const now=Math.floor(Date.now()/1000);
-    const p1=now-366*24*3600; // il y a 1 an +1 jour de marge
-    const YAHOO2=`https://query1.finance.yahoo.com/v8/finance/chart/EPAB.PA?interval=1wk&period1=${p1}&period2=${now}`;
-    const r2=await fetch(PROXY+encodeURIComponent(YAHOO2),
-      {signal:AbortSignal.timeout?AbortSignal.timeout(8000):undefined});
-    const j2=await r2.json();
-    const closes=j2?.chart?.result?.[0]?.indicators?.quote?.[0]?.close||[];
-    const valid=closes.filter(v=>v!=null&&v>0);
-    if(valid.length>=2){
-      currentEpabPerf1Y=+((valid[valid.length-1]/valid[0]-1)*100).toFixed(2);
-    }
-  }catch(e2){ /* perf reste null → N/A */ }
-
-  updateTirelire();
-  updateEtfTab();
-}
-
-// ══════════════════════════════════
-// ETF MARKET CHART (Yahoo Finance)
-// ══════════════════════════════════
-const FIRST_PURCHASE_PRICE = 42.03; // PRU réel — Market-Order 09/06/2026 (41,025€ + 1€ frais TR)
-let etfMarketChartInst = null, currentEtfPeriod = '1A';
-
-function updateEtfLiveDisplay(price){
-  const el = document.getElementById('etfLivePrice');
-  if(el) el.textContent = fmtDec(price);
-  const perf = ((price - FIRST_PURCHASE_PRICE) / FIRST_PURCHASE_PRICE) * 100;
-  const badge = document.getElementById('etfPerfFirst');
-  if(badge){
-    badge.textContent = (perf >= 0 ? '+' : '') + perf.toFixed(2) + ' %';
-    badge.className = 'etf-perf-badge ' + (perf >= 0 ? 'pos' : 'neg');
-  }
-}
-
-async function loadEtfChart(period, btn){
-  currentEtfPeriod = period;
-  if(btn){
-    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-  }
-
-  const PROXY = 'https://api.allorigins.win/raw?url=';
-  let interval, range, infoText;
-  if(period === '1S'){ interval = '1d'; range = '5d'; infoText = 'Journalier · Yahoo Finance'; }
-  else if(period === '1M'){ interval = '1d'; range = '1mo'; infoText = 'Journalier · Yahoo Finance'; }
-  else { interval = '1wk'; range = '1y'; infoText = 'Hebdomadaire · Yahoo Finance'; }
-
-  const info = document.getElementById('etfChartInfo');
-  const wrap = document.getElementById('etfMarketWrap');
-  if(info) info.textContent = '⏳ Chargement…';
-
-  try{
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/EPAB.PA?interval=${interval}&range=${range}`;
-    const r = await fetch(PROXY + encodeURIComponent(url),
-      {signal: AbortSignal.timeout ? AbortSignal.timeout(10000) : undefined});
-    const j = await r.json();
-    const result = j?.chart?.result?.[0];
-    if(!result) throw new Error('no data');
-
-    const timestamps = result.timestamp || [];
-    const closes = result.indicators?.quote?.[0]?.close || [];
-
-    const labels = [], data = [];
-    const dtOpts = period === '1A'
-      ? {month:'short', year:'2-digit'}
-      : period === '1M'
-        ? {day:'2-digit', month:'short'}
-        : {weekday:'short', day:'2-digit', month:'short'};
-
-    for(let i = 0; i < timestamps.length; i++){
-      if(closes[i] == null || closes[i] <= 0) continue;
-      labels.push(new Date(timestamps[i] * 1000).toLocaleDateString('fr-FR', dtOpts));
-      data.push(+closes[i].toFixed(3));
-    }
-    if(data.length === 0) throw new Error('empty');
-
-    // Live price from meta (most recent)
-    const live = result.meta?.regularMarketPrice || data[data.length - 1];
-    updateEtfLiveDisplay(live);
-
-    // Chart color based on period trend
-    const isUp = data[data.length - 1] >= data[0];
-    const lineColor = isUp ? '#4ade80' : '#ff6b6b';
-    const fillGrad = wrap && wrap.querySelector('canvas')
-      ? (() => {
-          const c = document.getElementById('etfMarketChart').getContext('2d');
-          const g = c.createLinearGradient(0, 0, 0, 280);
-          g.addColorStop(0, isUp ? 'rgba(74,222,128,.35)' : 'rgba(255,107,107,.35)');
-          g.addColorStop(1, isUp ? 'rgba(74,222,128,.02)' : 'rgba(255,107,107,.02)');
-          return g;
-        })()
-      : (isUp ? 'rgba(74,222,128,.15)' : 'rgba(255,107,107,.15)');
-
-    const canvas = document.getElementById('etfMarketChart');
-    if(!canvas) return;
-    if(etfMarketChartInst){ etfMarketChartInst.destroy(); etfMarketChartInst = null; }
-
-    etfMarketChartInst = new Chart(canvas.getContext('2d'), {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          label: 'EPAB.PA (€)',
-          data,
-          borderColor: lineColor,
-          backgroundColor: fillGrad,
-          fill: true,
-          tension: 0.35,
-          borderWidth: 2,
-          pointRadius: data.length > 30 ? 0 : 2,
-          pointHoverRadius: 5
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        interaction: {mode:'index', intersect:false},
-        plugins: {
-          legend: {display: false},
-          tooltip: {
-            backgroundColor: '#1a1f35',
-            borderColor: 'rgba(255,255,255,.08)', borderWidth: 1,
-            titleColor: '#e8eaf0', bodyColor: '#8890a4', padding: 11,
-            callbacks: {
-              label: c => ` ${fmtDec(c.raw)}`
-            }
-          }
-        },
-        scales: {
-          x: {grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#8890a4', font:{size:9}, maxTicksLimit:9}},
-          y: {
-            grid: {color:'rgba(255,255,255,.05)'},
-            ticks: {color:'#8890a4', font:{size:10}, callback: v => v.toFixed(2) + ' €'},
-            suggestedMin: Math.min(...data) * 0.995,
-            suggestedMax: Math.max(...data) * 1.005
-          }
-        }
+function renderEvolutionChart() {
+  const sorted = [...allPurchases].sort((a, b) => a.date.localeCompare(b.date));
+  const labels = []; const values = []; let cum = 0;
+  sorted.forEach(p => { cum += p.amount || 0; labels.push(p.date); values.push(cum); });
+  if (chartEvol) chartEvol.destroy();
+  const ctx = document.getElementById('chartEvolution').getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+  gradient.addColorStop(0, 'rgba(77,124,254,.35)');
+  gradient.addColorStop(1, 'rgba(77,124,254,.0)');
+  chartEvol = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Total investi (€)', data: values, borderColor: '#4d7cfe',
+      backgroundColor: gradient, fill: true, tension: .35,
+      pointRadius: values.length < 20 ? 4 : 0, pointBackgroundColor: '#4d7cfe', borderWidth: 2 }] },
+    options: { responsive: true,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmt(c.parsed.y) + ' €' } } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#5b6488', maxTicksLimit: 8 } },
+        y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#5b6488', callback: v => fmt(v) + ' €' } }
       }
-    });
+    }
+  });
+}
 
-    if(info) info.textContent = infoText;
-  } catch(e){
-    if(info) info.textContent = '⚠️ Données indisponibles — réessaye plus tard';
+function renderRecent() {
+  const el = document.getElementById('recentContainer');
+  const recent = allPurchases.slice(0, 5);
+  if (!recent.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>Aucun achat enregistré</div>'; return; }
+  el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>ETF</th><th>Montant</th><th>Parts</th></tr></thead><tbody>' +
+    recent.map(p => '<tr><td>' + fmtDate(p.date) + '</td><td><span class="badge badge-blue">EPAB.PA</span></td><td><strong>' + fmt(p.amount) + ' €</strong></td><td>' + (p.shares ? p.shares.toFixed(4) : '—') + '</td></tr>').join('') +
+    '</tbody></table></div>';
+}
+
+// MON PEA
+function renderPurchasesTable() {
+  const el = document.getElementById('purchasesContainer');
+  if (!allPurchases.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>Aucun achat — ajoutez votre premier investissement ci-dessus</div>'; return;
+  }
+  const totalInvested = allPurchases.reduce((s, p) => s + (p.amount || 0), 0);
+  const rows = [...allPurchases].sort((a, b) => b.date.localeCompare(a.date)).map(p =>
+    '<tr><td>' + fmtDate(p.date) + '</td><td><span class="badge badge-blue">EPAB.PA</span></td><td><strong>' + fmt(p.amount) + ' €</strong></td><td>' + (p.shares ? p.shares.toFixed(4) : '—') + '</td><td style="color:var(--text-sub);font-size:12px;">' + (p.note || '') + '</td><td><button class="btn-icon" onclick="deletePurchase(\'' + p.id + '\')" title="Supprimer">🗑</button></td></tr>'
+  ).join('');
+  el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>ETF</th><th>Montant</th><th>Parts</th><th>Note</th><th></th></tr></thead><tbody>' + rows + '</tbody></table><div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:24px;font-size:13px;color:var(--text-sub);"><span>Total investi : <strong style="color:var(--text);">' + fmt(totalInvested) + ' €</strong></span><span>Nb d\'achats : <strong style="color:var(--text);">' + allPurchases.length + '</strong></span></div></div>';
+}
+
+async function addPurchase() {
+  const date   = document.getElementById('fDate').value;
+  const amount = parseFloat(document.getElementById('fAmount').value);
+  const shares = parseFloat(document.getElementById('fShares').value) || null;
+  const note   = document.getElementById('fNote').value.trim() || null;
+  const btn    = document.getElementById('btnAdd');
+  if (!date || isNaN(amount) || amount <= 0) {
+    showToast('Veuillez renseigner la date et le montant.', 'error'); return;
+  }
+  btn.disabled = true; btn.textContent = '…';
+  const { error } = await db.from('purchases').insert([{
+    user_id: currentUser.id, date, etf: 'EPAB', amount, shares, note
+  }]);
+  btn.disabled = false; btn.textContent = '+ Ajouter';
+  if (error) { showToast("Erreur lors de l'ajout.", 'error'); console.error(error); }
+  else {
+    document.getElementById('fAmount').value = '';
+    document.getElementById('fShares').value = '';
+    document.getElementById('fNote').value   = '';
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('fDate').value = today;
+    showToast('Achat enregistré ✓', 'success');
   }
 }
 
-// ══════════════════════════════════
-// TIRELIRE DYNAMIQUE
-// ══════════════════════════════════
-function updateTirelire(){
-  const cours=parseFloat(document.getElementById('valoCours')?.value)||currentEpabPrice||40;
-  const budget=monthlyBudgetDCA;
-  const partsPerMonth=Math.floor(budget/cours);
-  const cashPerMonth=+(budget-partsPerMonth*cours-FRAIS_ORDRE).toFixed(2);
-  const cashNeeded=+cours.toFixed(2);
-  const moisTirelire=cashPerMonth>0?Math.ceil(cashNeeded/cashPerMonth):null;
-
-  const tlPrix=document.getElementById('tlPrix');
-  if(!tlPrix) return;
-  tlPrix.textContent=fmtDec(cours)+' / part';
-
-  const tlParts=document.getElementById('tlParts');
-  const tlCash=document.getElementById('tlCash');
-  const tlSeuil=document.getElementById('tlSeuil');
-  const tlNote=document.getElementById('tlNote');
-
-  if(partsPerMonth===0){
-    if(tlParts) tlParts.textContent='0 part (budget insuffisant)';
-    if(tlCash)  tlCash.textContent=`+ ${fmtDec(cashPerMonth)} (frais ${fmtDec(FRAIS_ORDRE)} inclus)`;
-    if(tlSeuil) tlSeuil.textContent=moisTirelire?`≥ ${fmtDec(cashNeeded)} (~${moisTirelire} mois)`:'—';
-    if(tlNote)  tlNote.innerHTML=`Avec <strong>${fmtDec(budget)}/mois</strong>, le cours actuel de <strong>${fmtDec(cours)}</strong> ne permet pas d'acheter 1 part chaque mois. Tu épargnes <strong>${fmtDec(cashPerMonth)}</strong> de cash par mois. Après ~<strong>${moisTirelire||'?'} mois</strong> tu pourras acheter <strong>1 part</strong>.`;
-  } else {
-    const partsLabel=partsPerMonth===1?'1 part':`${partsPerMonth} parts`;
-    if(tlParts) tlParts.textContent=`${partsLabel} (${fmtDec(partsPerMonth*cours)})`;
-    if(tlCash)  tlCash.textContent=`${cashPerMonth>=0?'+ ':''}${fmtDec(cashPerMonth)} (frais ${fmtDec(FRAIS_ORDRE)} inclus)`;
-    const seuilStr=moisTirelire&&moisTirelire>0?`≥ ${fmtDec(cashNeeded)} (~${moisTirelire} mois)`:'Ce mois-ci !';
-    if(tlSeuil) tlSeuil.textContent=seuilStr;
-    if(tlNote)  tlNote.innerHTML=`Chaque mois tu achètes <strong>${partsLabel} à ${fmtDec(cours)}</strong> et tu laisses <strong>${fmtDec(cashPerMonth)} en cash</strong> sur ton PEA. Au bout de ~<strong>${moisTirelire||'?'} mois</strong> (≥ ${fmtDec(cashNeeded)} en cash), tu passes <strong>1 seul ordre de ${partsPerMonth+1} parts</strong> (${fmtDec((partsPerMonth+1)*cours)}) — toujours gratuit en investissement programmé chez Trade Republic. Le surplus repart en cash pour le cycle suivant.`;
-  }
-  // Mettre à jour le code couleur avec le cash saisi
-  updateTirelireCash();
+async function deletePurchase(id) {
+  if (!confirm('Supprimer cet achat ?')) return;
+  const { error } = await db.from('purchases').delete().eq('id', id);
+  if (error) showToast('Erreur lors de la suppression.', 'error');
+  else showToast('Achat supprimé.', 'success');
 }
 
-// ══════════════════════════════════
-// ONGLET ETF DYNAMIQUE
-// ══════════════════════════════════
-function updateEtfTab(){
-  // Priorité à currentEpabPrice (mis à jour par fetch + loadValo), pas au DOM
-  const cours=currentEpabPrice>0?currentEpabPrice:(parseFloat(document.getElementById('valoCours')?.value)||40);
-  const budget=monthlyBudgetDCA;
-  const partsPerMonth=Math.floor(budget/cours);
-  const cashPerMonth=+(budget-partsPerMonth*cours-FRAIS_ORDRE).toFixed(2);
-  const cashNeeded=+cours.toFixed(2); // seuil = prix d'une part
-  const moisTirelire=cashPerMonth>0?Math.ceil(cashNeeded/cashPerMonth):null;
-  // Perf 1 an — auto si fetch OK, sinon laisse la saisie manuelle
-  const perfInp=document.getElementById('etfPerf1YInput');
-  if(perfInp&&currentEpabPerf1Y!==null){
-    perfInp.value=currentEpabPerf1Y.toFixed(2);
-    perfInp.style.color=currentEpabPerf1Y>=0?'var(--green)':'var(--accent3)';
-    localStorage.setItem(LS_PERF,perfInp.value);
-    renderEtfProjection(); // graphique mis à jour avec la perf réelle fetchée
+// SIMULATEUR
+function updateSim() {
+  const budget   = parseFloat(document.getElementById('sBudget').value);
+  const years    = parseInt(document.getElementById('sDuration').value);
+  const rate     = parseFloat(document.getElementById('sRate').value);
+  const price    = parseFloat(document.getElementById('sPrice').value);
+  document.getElementById('sLabelBudget').textContent   = fmt(budget) + ' €';
+  document.getElementById('sLabelDuration').textContent = years + (years > 1 ? ' ans' : ' an');
+  document.getElementById('sLabelRate').textContent     = rate + ' %';
+  document.getElementById('sLabelPrice').textContent    = fmt(price) + ' €';
+  const months   = years * 12;
+  const r        = rate / 100 / 12;
+  const fv       = budget * ((Math.pow(1 + r, months) - 1) / r) * (1 + r);
+  const invested = budget * months;
+  const gain     = fv - invested;
+  const sharesN  = fv / price;
+  document.getElementById('rInvested').textContent = fmt(invested) + ' €';
+  document.getElementById('rFinal').textContent    = fmt(fv) + ' €';
+  document.getElementById('rGain').textContent     = '+' + fmt(gain) + ' €';
+  document.getElementById('rShares').textContent   = sharesN.toFixed(1) + ' parts';
+  const labelsSim = []; const valInvested = []; const valFV = [];
+  for (let m = 1; m <= months; m++) {
+    if (m % 12 === 0 || m === months) {
+      labelsSim.push((m/12) + ' an' + (m/12 > 1 ? 's' : ''));
+      valInvested.push(budget * m);
+      valFV.push(budget * ((Math.pow(1 + r, m) - 1) / r) * (1 + r));
+    }
   }
-  // Si null : on ne touche pas le champ → la valeur manuelle persiste
-
-  const etfPrix=document.getElementById('etfPrix');
-  if(!etfPrix) return;
-  etfPrix.textContent=`≈ ${fmtDec(cours)}`;
-
-  const etfDCALabel=document.getElementById('etfDCALabel');
-  const etfDCA=document.getElementById('etfDCA');
-  const etfCash=document.getElementById('etfCash');
-  const etfTirelire=document.getElementById('etfTirelire');
-  const etfNote=document.getElementById('etfNote');
-
-  if(etfDCALabel) etfDCALabel.textContent=`DCA ${fmtDec(budget)}/mois`;
-  const partsLabel=partsPerMonth===1?'1 part/mois':`${partsPerMonth} parts/mois`;
-  if(etfDCA) etfDCA.textContent=partsLabel;
-  if(etfCash) etfCash.textContent=`~${fmtDec(cashPerMonth)}/mois (frais inclus)`;
-  if(etfTirelire) etfTirelire.textContent=moisTirelire&&moisTirelire>0?`≥ ${fmtDec(cashNeeded)} (~${moisTirelire} mois)`:'Direct !';
-
-  if(etfNote){
-    const partsLabelLong=partsPerMonth===1?'1 part':`${partsPerMonth} parts`;
-    etfNote.innerHTML=`<strong>🐷 Stratégie Tirelire DCA</strong> — Avec <strong>${fmtDec(budget)}/mois</strong> tu achètes <strong>${partsLabelLong} à ${fmtDec(cours)}</strong> et tu laisses <strong>${fmtDec(cashPerMonth)} en cash</strong> sur ton PEA. Au bout de ~${moisTirelire||'?'} mois (≥ ${fmtDec(cashNeeded)} en cash), tu passes <strong>1 seul ordre de ${partsPerMonth+1} parts</strong> (${fmtDec((partsPerMonth+1)*cours)}) — toujours <strong style="color:var(--green)">0 € de frais</strong> en investissement programmé chez Trade Republic. Le surplus repart en cash pour le cycle suivant.`;
-  }
+  if (chartSim) chartSim.destroy();
+  const ctx = document.getElementById('chartSimulator').getContext('2d');
+  const g1 = ctx.createLinearGradient(0, 0, 0, 300);
+  g1.addColorStop(0, 'rgba(34,197,94,.3)'); g1.addColorStop(1, 'rgba(34,197,94,.0)');
+  const g2 = ctx.createLinearGradient(0, 0, 0, 300);
+  g2.addColorStop(0, 'rgba(77,124,254,.2)'); g2.addColorStop(1, 'rgba(77,124,254,.0)');
+  chartSim = new Chart(ctx, {
+    type: 'line',
+    data: { labels: labelsSim, datasets: [
+      { label: 'Valeur finale', data: valFV, borderColor: '#22c55e', backgroundColor: g1,
+        fill: true, tension: .35, pointRadius: 3, borderWidth: 2 },
+      { label: 'Total investi', data: valInvested, borderColor: '#4d7cfe', backgroundColor: g2,
+        fill: true, tension: .35, pointRadius: 3, borderWidth: 2, borderDash: [4,3] }
+    ]},
+    options: { responsive: true,
+      plugins: { legend: { labels: { color: '#8a94b8', font: { size: 12 } } },
+        tooltip: { callbacks: { label: c => ' ' + fmt(c.parsed.y) + ' €' } } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#5b6488' } },
+        y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#5b6488', callback: v => fmt(v) + ' €' } }
+      }
+    }
+  });
 }
 
-// ══════════════════════════════════
-// SERVICE WORKER
-// ══════════════════════════════════
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
-}
-
-// INIT
-
-// ─── ETF MARKET CHART ──────────────────────────────────────────────────────
+// ETF CHART
 const FIRST_PURCHASE_PRICE = 42.03;
 let etfMarketChartInst = null, currentEtfPeriod = '1A';
 
 function updateEtfLiveDisplay(price) {
-  const el = document.getElementById('etfLivePrice');
-  if(el) el.textContent = price.toLocaleString('fr-FR', {minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('etfLivePrice').textContent =
+    price.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
   const perf = ((price - FIRST_PURCHASE_PRICE) / FIRST_PURCHASE_PRICE) * 100;
-  const badge = document.getElementById('etfPerfFirst');
-  if(badge){
-    badge.textContent = (perf >= 0 ? '+' : '') + perf.toFixed(2) + ' %';
-    badge.className = 'etf-perf-badge ' + (perf >= 0 ? 'pos' : 'neg');
-  }
+  const perfEl = document.getElementById('etfPerfFirst');
+  const sign = perf >= 0 ? '+' : '';
+  perfEl.textContent = sign + perf.toFixed(2) + ' %';
+  perfEl.style.color = perf >= 0 ? 'var(--green)' : 'var(--red)';
+  const card = document.getElementById('etfPerfCard');
+  if (card) card.style.borderColor = perf >= 0 ? 'rgba(34,197,94,.3)' : 'rgba(239,68,68,.3)';
 }
 
 async function loadEtfChart(period, btn) {
-  if(btn){
-    document.querySelectorAll('.etf-period-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-  }
-  currentEtfPeriod = period;
-  const msgEl = document.getElementById('etfChartMsg');
-  const rangeMap = {'1S':'5d','1M':'1mo','1A':'1y'};
-  const intervalMap = {'1S':'1d','1M':'1d','1A':'1wk'};
-  const range = rangeMap[period] || '1y';
-  const interval = intervalMap[period] || '1wk';
-  const symbol = 'EPAB.PA';
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=${range}&interval=${interval}&includePrePost=false`;
-  const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-  try {
-    if(msgEl) msgEl.textContent = '';
-    const res = await fetch(proxy);
-    const json = await res.json();
-    const data = JSON.parse(json.contents);
-    const result = data?.chart?.result?.[0];
-    if(!result) throw new Error('No data');
-    const timestamps = result.timestamp;
-    const closes = result.indicators?.quote?.[0]?.close;
-    if(!timestamps || !closes) throw new Error('No quotes');
-    const labels = timestamps.map(t => {
-      const d = new Date(t*1000);
-      return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
-    });
-    const validCloses = closes.map(c => c === null ? null : parseFloat(c.toFixed(2)));
-    // Update live price with last valid close
-    const lastPrice = [...validCloses].reverse().find(c => c !== null);
-    if(lastPrice) updateEtfLiveDisplay(lastPrice);
+  currentEtfPeriod = period || currentEtfPeriod;
+  document.querySelectorAll('.btn-period').forEach(b => b.classList.remove('active'));
+  const activeBtn = btn || document.getElementById('btn' + currentEtfPeriod);
+  if (activeBtn) activeBtn.classList.add('active');
 
-    if(etfMarketChartInst) etfMarketChartInst.destroy();
-    const canvas = document.getElementById('etfMarketChart');
-    if(!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const gradient = ctx.createLinearGradient(0,0,0,220);
-    gradient.addColorStop(0,'rgba(77,124,254,.35)');
-    gradient.addColorStop(1,'rgba(77,124,254,.0)');
+  const loader = document.getElementById('etfChartLoader');
+  const canvas = document.getElementById('etfMarketChart');
+  if (loader) loader.style.display = 'flex';
+  if (canvas) canvas.style.display = 'none';
+
+  const rangeMap    = { '1A': '1y',  '1M': '1mo', '1S': '5d' };
+  const intervalMap = { '1A': '1d',  '1M': '1d',  '1S': '1h' };
+  const range    = rangeMap[currentEtfPeriod]    || '1y';
+  const interval = intervalMap[currentEtfPeriod] || '1d';
+
+  try {
+    const yhUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/EPAB.PA?interval=' + interval + '&range=' + range + '&includePrePost=false';
+    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(yhUrl);
+    const res  = await fetch(proxyUrl);
+    const json = await res.json();
+    const result = json.chart.result[0];
+    const timestamps = result.timestamp;
+    const closes     = result.indicators.quote[0].close;
+    const meta       = result.meta;
+    const livePrice  = meta.regularMarketPrice || closes.filter(c => c !== null).slice(-1)[0];
+
+    updateEtfLiveDisplay(livePrice);
+
+    const validPairs = timestamps.map((t, i) => ({ t, c: closes[i] }))
+                                 .filter(x => x.c !== null && x.c !== undefined);
+    const vLabels = validPairs.map(x => {
+      const d = new Date(x.t * 1000);
+      if (currentEtfPeriod === '1S')
+        return d.toLocaleString('fr-FR', { weekday:'short', hour:'2-digit', minute:'2-digit' });
+      return d.toLocaleDateString('fr-FR', { day:'2-digit', month:'short' });
+    });
+    const vData = validPairs.map(x => x.c);
+
+    const subEl = document.getElementById('etfChartSub');
+    if (subEl) subEl.textContent = 'Cours live : ' + livePrice.toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' € · Yahoo Finance';
+
+    if (etfMarketChartInst) { etfMarketChartInst.destroy(); etfMarketChartInst = null; }
+    if (loader) loader.style.display = 'none';
+    if (canvas) canvas.style.display = 'block';
+
+    const ctx   = canvas.getContext('2d');
+    const isUp  = vData[vData.length - 1] >= vData[0];
+    const lineColor = isUp ? '#22c55e' : '#ef4444';
+    const grad  = ctx.createLinearGradient(0, 0, 0, 300);
+    grad.addColorStop(0, isUp ? 'rgba(34,197,94,.28)' : 'rgba(239,68,68,.28)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+
     etfMarketChartInst = new Chart(ctx, {
-      type:'line',
-      data:{ labels, datasets:[{
-        label:'EPAB.PA (€)', data:validCloses,
-        borderColor:'#4d7cfe', backgroundColor:gradient,
-        fill:true, tension:.3, pointRadius:0, borderWidth:2,
-        spanGaps:true
+      type: 'line',
+      data: { labels: vLabels, datasets: [{
+        label: 'EPAB.PA', data: vData,
+        borderColor: lineColor, backgroundColor: grad,
+        fill: true, tension: .3, pointRadius: 0, borderWidth: 2
       }]},
-      options:{
-        responsive:true, maintainAspectRatio:false,
-        plugins:{
-          legend:{display:false},
-          tooltip:{callbacks:{label:c=>' '+c.parsed.y+' €'}}
+      options: {
+        responsive: true,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: c => ' ' + c.parsed.y.toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' €' } }
         },
-        scales:{
-          x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#5b6488',maxTicksLimit:8}},
-          y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#5b6488',callback:v=>v+' €'}}
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#5b6488', maxTicksLimit: 8 } },
+          y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#5b6488',
+            callback: v => v.toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' €'
+          }}
         }
       }
     });
   } catch(e) {
-    if(msgEl) msgEl.textContent = '⚠ Données indisponibles — réessaye plus tard';
-    console.warn('ETF chart error:', e);
+    if (loader) {
+      loader.style.display = 'flex';
+      loader.innerHTML = '<span style="color:var(--red)">Impossible de charger les données — vérifiez votre connexion.</span>';
+    }
+    console.error('ETF chart error:', e);
   }
 }
 
+// UTILS
+function fmt(n) {
+  if (typeof n !== 'number' || isNaN(n)) return '—';
+  return n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  const [y, m, day] = d.split('-');
+  return day + '/' + m + '/' + y;
+}
+let toastTimer = null;
+function showToast(msg, type) {
+  type = type || 'success';
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ''; }, 3200);
+}
+
 initAuth();
-// Rafraîchissement automatique du cours toutes les 5 minutes
-setInterval(fetchEpabPrice, 5*60*1000);
 </script>
 </body>
 </html>
