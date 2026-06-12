@@ -84,9 +84,10 @@
     .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
     .badge-blue { background: var(--accent-dim); color: var(--accent); }
     .badge-green { background: var(--green-dim); color: var(--green); }
+    .badge-orange { background: rgba(245,158,11,.15); color: var(--gold); }
     .btn-icon { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px 8px; border-radius: 6px; transition: background .15s, color .15s; font-size: 14px; }
     .btn-icon:hover { background: var(--red-dim); color: var(--red); }
-    .add-form { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 12px; align-items: end; background: var(--bg-elevated); border: 1px solid var(--border-light); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
+    .add-form { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr auto; gap: 12px; align-items: end; background: var(--bg-elevated); border: 1px solid var(--border-light); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
     .form-field label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-sub); margin-bottom: 6px; }
     .form-field input, .form-field select { width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; color: var(--text); font-size: 13px; font-family: inherit; outline: none; transition: border-color .2s; }
     .form-field input:focus, .form-field select:focus { border-color: var(--accent); }
@@ -266,7 +267,7 @@
       <div id="section-pea" class="section">
         <div class="page-header">
           <div class="page-title">Mon PEA</div>
-          <div class="page-sub">ETF Amundi S&amp;P Eurozone Climate — EPAB.PA (LU2195226068)</div>
+          <div class="page-sub">ETF Amundi S&P Eurozone Climate — EPAB.PA (LU2195226068)</div>
         </div>
         <div class="page-body">
           <div class="add-form">
@@ -285,6 +286,13 @@
             <div class="form-field">
               <label>Note (optionnel)</label>
               <input type="text" id="fNote" placeholder="ex: DCA mensuel juin">
+            </div>
+            <div class="form-field">
+              <label>Compte</label>
+              <select id="fAccount">
+                <option value="PEA">PEA</option>
+                <option value="CTO">CTO</option>
+              </select>
             </div>
             <button class="btn-add" id="btnAdd" onclick="addPurchase()">+ Ajouter</button>
           </div>
@@ -363,7 +371,7 @@
       <div id="section-etf" class="section">
         <div class="page-header">
           <div class="page-title">Mon ETF</div>
-          <div class="page-sub">EPAB.PA — Amundi S&amp;P Eurozone PAB UCITS ETF · LU2195226068</div>
+          <div class="page-sub">EPAB.PA — Amundi S&P Eurozone PAB UCITS ETF · LU2195226068</div>
         </div>
         <div class="page-body">
           <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);">
@@ -592,8 +600,8 @@ function renderRecent() {
   const el = document.getElementById('recentContainer');
   const recent = allPurchases.slice(0, 5);
   if (!recent.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>Aucun achat enregistré</div>'; return; }
-  el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>ETF</th><th>Montant</th><th>Parts</th></tr></thead><tbody>' +
-    recent.map(p => '<tr><td>' + fmtDate(p.date) + '</td><td><span class="badge badge-blue">EPAB.PA</span></td><td><strong>' + fmt(p.amount) + ' €</strong></td><td>' + (p.shares ? p.shares.toFixed(4) : '—') + '</td></tr>').join('') +
+  el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>ETF</th><th>Montant</th><th>Parts</th><th>Compte</th></tr></thead><tbody>' +
+    recent.map(p => '<tr><td>' + fmtDate(p.date) + '</td><td><span class="badge badge-blue">EPAB.PA</span></td><td><strong>' + fmt(p.amount) + ' €</strong></td><td>' + (p.shares ? p.shares.toFixed(4) : '—') + '</td><td>' + (p.account === 'CTO' ? '<span class="badge badge-orange">CTO</span>' : '<span class="badge badge-green">PEA</span>') + '</td></tr>').join('') +
     '</tbody></table></div>';
 }
 
@@ -605,9 +613,9 @@ function renderPurchasesTable() {
   }
   const totalInvested = allPurchases.reduce((s, p) => s + (p.amount || 0), 0);
   const rows = [...allPurchases].sort((a, b) => b.date.localeCompare(a.date)).map(p =>
-    '<tr><td>' + fmtDate(p.date) + '</td><td><span class="badge badge-blue">EPAB.PA</span></td><td><strong>' + fmt(p.amount) + ' €</strong></td><td>' + (p.shares ? p.shares.toFixed(4) : '—') + '</td><td style="color:var(--text-sub);font-size:12px;">' + (p.note || '') + '</td><td><button class="btn-icon" onclick="deletePurchase(\'' + p.id + '\')" title="Supprimer">🗑</button></td></tr>'
+    '<tr><td>' + fmtDate(p.date) + '</td><td><span class="badge badge-blue">EPAB.PA</span></td><td><strong>' + fmt(p.amount) + ' €</strong></td><td>' + (p.shares ? p.shares.toFixed(4) : '—') + '</td><td>' + (p.account === 'CTO' ? '<span class="badge badge-orange">CTO</span>' : '<span class="badge badge-green">PEA</span>') + '</td><td style="color:var(--text-sub);font-size:12px;">' + (p.note || '') + '</td><td><button class="btn-icon" onclick="deletePurchase(\'' + p.id + '\')" title="Supprimer">🗑</button></td></tr>'
   ).join('');
-  el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>ETF</th><th>Montant</th><th>Parts</th><th>Note</th><th></th></tr></thead><tbody>' + rows + '</tbody></table><div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:24px;font-size:13px;color:var(--text-sub);"><span>Total investi : <strong style="color:var(--text);">' + fmt(totalInvested) + ' €</strong></span><span>Nb d\'achats : <strong style="color:var(--text);">' + allPurchases.length + '</strong></span></div></div>';
+  el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>ETF</th><th>Montant</th><th>Parts</th><th>Compte</th><th>Note</th><th></th></tr></thead><tbody>' + rows + '</tbody></table><div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:24px;font-size:13px;color:var(--text-sub);"><span>Total investi : <strong style="color:var(--text);">' + fmt(totalInvested) + ' €</strong></span><span>Nb d\'achats : <strong style="color:var(--text);">' + allPurchases.length + '</strong></span></div></div>';
 }
 
 async function addPurchase() {
@@ -620,8 +628,9 @@ async function addPurchase() {
     showToast('Veuillez renseigner la date et le montant.', 'error'); return;
   }
   btn.disabled = true; btn.textContent = '…';
+  const account = document.getElementById('fAccount').value || 'PEA';
   const { error } = await db.from('purchases').insert([{
-    date, etf: 'EPAB', amount, shares, note
+    date, etf: 'EPAB', amount, shares, note, account
   }]);
   btn.disabled = false; btn.textContent = '+ Ajouter';
   if (error) { showToast("Erreur lors de l'ajout.", 'error'); console.error(error); }
@@ -789,7 +798,7 @@ async function loadEtfChart(period, btn) {
   } catch(e) {
     if (loader) {
       loader.style.display = 'flex';
-      loader.innerHTML = '<span style="color:var(--red)">Impossible de charger les données — vérifiez votre connexion.</span>';
+      loader.innerHTML = '<span style="color:var(--red)">Impossible de charger les données � — vérifiez votre connexion.</span>';
     }
     console.error('ETF chart error:', e);
   }
