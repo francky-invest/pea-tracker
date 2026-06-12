@@ -296,6 +296,18 @@
             </div>
             <button class="btn-add" id="btnAdd" onclick="addPurchase()">+ Ajouter</button>
           </div>
+
+          <!-- 🐷 TIRELIRE -->
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-header">
+              <div>
+                <div class="card-title">🐷 Stratégie Tirelire</div>
+                <div class="card-sub">Cash accumulé · 50 €/mois · Trade Republic (0 € de frais)</div>
+              </div>
+            </div>
+            <div id="tirelireContent"><div class="loading"><div class="spinner"></div> Calcul en cours…</div></div>
+          </div>
+
           <div class="card" style="padding:0; overflow:hidden;">
             <div style="padding:20px 24px 16px; border-bottom:1px solid var(--border);">
               <div class="card-title">Historique des achats</div>
@@ -319,8 +331,8 @@
               <div class="card-title" style="margin-bottom:20px;">Paramètres</div>
               <div class="sim-inputs">
                 <div class="range-field">
-                  <label>Apport mensuel <span id="sLabelBudget">100 €</span></label>
-                  <input type="range" id="sBudget" min="10" max="1000" step="10" value="100" oninput="updateSim()">
+                  <label>Apport mensuel <span id="sLabelBudget">50 €</span></label>
+                  <input type="range" id="sBudget" min="10" max="1000" step="10" value="50" oninput="updateSim()">
                 </div>
                 <div class="range-field">
                   <label>Durée <span id="sLabelDuration">10 ans</span></label>
@@ -331,7 +343,7 @@
                   <input type="range" id="sRate" min="1" max="20" step="0.5" value="7" oninput="updateSim()">
                 </div>
                 <div class="range-field">
-                  <label>Prix actuel ETF (€) <span id="sLabelPrice">50 €</span></label>
+                  <label>Prix actuel ETF <span id="sLabelPrice">50 €</span></label>
                   <input type="range" id="sPrice" min="1" max="500" step="0.5" value="50" oninput="updateSim()">
                 </div>
               </div>
@@ -358,7 +370,7 @@
               <div class="card-header">
                 <div>
                   <div class="card-title">Projection</div>
-                  <div class="card-sub">Valeur du portefeuille dans le temps</div>
+                  <div class="card-sub" id="simRateNote">Taux basé sur votre saisie</div>
                 </div>
               </div>
               <canvas id="chartSimulator" height="240"></canvas>
@@ -521,7 +533,6 @@ function doLogout() {
   setTimeout(() => document.getElementById('pinInput').focus(), 150);
 }
 
-
 function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
@@ -532,6 +543,7 @@ function showApp() {
     now.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
   updateSim();
   loadAll();
+  fetchLivePrice(); // prix + perf 1A → injectés dans le simulateur au démarrage
   db.channel('purchases-ch')
     .on('postgres_changes', { event:'*', schema:'public', table:'purchases' }, () => loadAll())
     .subscribe();
@@ -547,6 +559,7 @@ function showSection(name, el, source) {
   if (sideEl) sideEl.classList.add('active');
   if (bnEl)   bnEl.classList.add('active');
   if (name === 'etf') loadEtfChart(currentEtfPeriod);
+  if (name === 'simulator') fetchLivePrice(); // actualise prix + taux à chaque ouverture
 }
 
 // DATA
@@ -609,13 +622,16 @@ function renderRecent() {
 function renderPurchasesTable() {
   const el = document.getElementById('purchasesContainer');
   if (!allPurchases.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>Aucun achat — ajoutez votre premier investissement ci-dessus</div>'; return;
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>Aucun achat — ajoutez votre premier investissement ci-dessus</div>';
+    updateTirelireCard();
+    return;
   }
   const totalInvested = allPurchases.reduce((s, p) => s + (p.amount || 0), 0);
   const rows = [...allPurchases].sort((a, b) => b.date.localeCompare(a.date)).map(p =>
     '<tr><td>' + fmtDate(p.date) + '</td><td><span class="badge badge-blue">EPAB.PA</span></td><td><strong>' + fmt(p.amount) + ' €</strong></td><td>' + (p.shares ? p.shares.toFixed(4) : '—') + '</td><td>' + (p.account === 'CTO' ? '<span class="badge badge-orange">CTO</span>' : '<span class="badge badge-green">PEA</span>') + '</td><td style="color:var(--text-sub);font-size:12px;">' + (p.note || '') + '</td><td><button class="btn-icon" onclick="deletePurchase(\'' + p.id + '\')" title="Supprimer">🗑</button></td></tr>'
   ).join('');
   el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>ETF</th><th>Montant</th><th>Parts</th><th>Compte</th><th>Note</th><th></th></tr></thead><tbody>' + rows + '</tbody></table><div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:24px;font-size:13px;color:var(--text-sub);"><span>Total investi : <strong style="color:var(--text);">' + fmt(totalInvested) + ' €</strong></span><span>Nb d\'achats : <strong style="color:var(--text);">' + allPurchases.length + '</strong></span></div></div>';
+  updateTirelireCard();
 }
 
 async function addPurchase() {
@@ -649,6 +665,60 @@ async function deletePurchase(id) {
   const { error } = await db.from('purchases').delete().eq('id', id);
   if (error) showToast('Erreur lors de la suppression.', 'error');
   else showToast('Achat supprimé.', 'success');
+}
+
+// ══ TIRELIRE ══
+function updateTirelireCard() {
+  const el = document.getElementById('tirelireContent');
+  if (!el) return;
+  const BUDGET = 50;
+  const livePrice = parseFloat(document.getElementById('sPrice').value) || 41;
+  const totalInvested = allPurchases.reduce((s, p) => s + (p.amount || 0), 0);
+  const count = allPurchases.length;
+
+  const versements = count * BUDGET;
+  const tirelire = Math.max(0, +(versements - totalInvested).toFixed(2));
+  const cashNeeded = +livePrice.toFixed(2);
+  const partsPerMonth = Math.floor(BUDGET / livePrice);
+  const cashPerMonth = +(BUDGET - partsPerMonth * livePrice).toFixed(2);
+  const extraParts = tirelire > 0 ? Math.floor(tirelire / cashNeeded) : 0;
+  const pct = Math.min(100, (tirelire / cashNeeded) * 100);
+  const moisRestants = cashPerMonth > 0 ? Math.ceil((cashNeeded - tirelire) / cashPerMonth) : null;
+
+  let statusHtml = '';
+  if (extraParts >= 2) {
+    statusHtml = `<div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;color:var(--green);margin-top:12px;">🚀 Super tirelire ! Tu peux acheter <strong>${extraParts} parts supplémentaires</strong> ce mois-ci !</div>`;
+  } else if (tirelire >= cashNeeded) {
+    statusHtml = `<div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;color:var(--green);margin-top:12px;">🎯 Tirelire pleine ! Tu peux racheter 1 part supplémentaire ce mois-ci. 🎉</div>`;
+  }
+
+  const progressColor = tirelire >= cashNeeded ? 'var(--green)' : 'linear-gradient(90deg,var(--accent),#7c5cfc)';
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;">
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Cours EPAB</div>
+        <div style="font-size:18px;font-weight:700;">${livePrice.toFixed(2)} €</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid ${tirelire >= cashNeeded ? 'rgba(34,197,94,.35)' : 'var(--border)'};border-radius:8px;padding:12px 14px;">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Solde tirelire</div>
+        <div style="font-size:18px;font-weight:700;color:${tirelire >= cashNeeded ? 'var(--green)' : 'var(--gold)'};">${tirelire.toFixed(2)} €</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Progression</div>
+        <div style="font-size:18px;font-weight:700;color:var(--accent);">${pct.toFixed(0)} %</div>
+      </div>
+    </div>
+    <div style="background:rgba(255,255,255,.06);border-radius:99px;height:6px;overflow:hidden;margin-bottom:10px;">
+      <div style="height:100%;width:${Math.min(100,pct).toFixed(1)}%;background:${progressColor};border-radius:99px;transition:width .5s ease;"></div>
+    </div>
+    <div style="font-size:12px;color:var(--text-sub);">
+      ${tirelire >= cashNeeded
+        ? `✅ Seuil atteint ! (${cashNeeded.toFixed(2)} € pour 1 part)`
+        : `${(cashNeeded - tirelire).toFixed(2)} € manquants pour 1 part supp.${moisRestants && moisRestants > 0 ? ` · ~${moisRestants} mois` : ''} · cash +${cashPerMonth.toFixed(2)} €/mois`}
+    </div>
+    ${statusHtml}
+  `;
 }
 
 // SIMULATEUR
@@ -702,6 +772,37 @@ function updateSim() {
       }
     }
   });
+  // Mise à jour tirelire si le prix a changé
+  updateTirelireCard();
+}
+
+// ══ FETCH PRIX + PERF 1A (Yahoo Finance) ══
+async function fetchLivePrice() {
+  try {
+    const url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(
+      'https://query1.finance.yahoo.com/v8/finance/chart/EPAB.PA?interval=1d&range=1y&includePrePost=false'
+    );
+    const json = await (await fetch(url)).json();
+    const result = json.chart.result[0];
+    const closes = result.indicators.quote[0].close.filter(c => c != null);
+    const live = result.meta.regularMarketPrice || closes[closes.length - 1];
+
+    // Prix → ETF display + slider simulateur
+    updateEtfLiveDisplay(live);
+
+    // Perf 1 an → slider taux simulateur
+    if (closes.length >= 2) {
+      const perf1Y = ((closes[closes.length - 1] / closes[0]) - 1) * 100;
+      const sRateEl = document.getElementById('sRate');
+      if (sRateEl) {
+        const clipped = Math.min(20, Math.max(1, +perf1Y.toFixed(1)));
+        sRateEl.value = clipped;
+        const noteEl = document.getElementById('simRateNote');
+        if (noteEl) noteEl.textContent = `Taux réel EPAB 1 an : ${perf1Y.toFixed(1)} %`;
+        updateSim();
+      }
+    }
+  } catch(e) { /* fallback silencieux */ }
 }
 
 // ETF CHART
@@ -718,6 +819,13 @@ function updateEtfLiveDisplay(price) {
   perfEl.style.color = perf >= 0 ? 'var(--green)' : 'var(--red)';
   const card = document.getElementById('etfPerfCard');
   if (card) card.style.borderColor = perf >= 0 ? 'rgba(34,197,94,.3)' : 'rgba(239,68,68,.3)';
+
+  // Injecter le prix live dans le slider du simulateur
+  const sPriceEl = document.getElementById('sPrice');
+  if (sPriceEl) {
+    sPriceEl.value = Math.min(500, Math.max(1, parseFloat(price.toFixed(1))));
+    updateSim();
+  }
 }
 
 async function loadEtfChart(period, btn) {
@@ -798,7 +906,7 @@ async function loadEtfChart(period, btn) {
   } catch(e) {
     if (loader) {
       loader.style.display = 'flex';
-      loader.innerHTML = '<span style="color:var(--red)">Impossible de charger les données � — vérifiez votre connexion.</span>';
+      loader.innerHTML = '<span style="color:var(--red)">Impossible de charger les données — vérifiez votre connexion.</span>';
     }
     console.error('ETF chart error:', e);
   }
