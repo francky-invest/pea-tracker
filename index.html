@@ -928,8 +928,7 @@ function showToast(msg, type) {
   type = type || 'success';
   const el = document.getElementById('toast');
   el.textContent = msg;
-  el.className = 'show  'show 
-' + type;
+  el.className = 'show ' + type;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.className = ''; }, 3200);
 }
