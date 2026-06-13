@@ -546,7 +546,7 @@ function doLogout() {
   setTimeout(() => document.getElementById('pinInput').focus(), 150);
 }
 
-function showApp() {
+async function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('userEmail').textContent = 'Francky';
@@ -555,8 +555,11 @@ function showApp() {
   document.getElementById('dashDate').textContent =
     now.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
   updateSim();
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) await db.auth.signInAnonymously();
+  } catch(e) { console.warn('Supabase auth:', e); }
   loadAll();
-  fetchLivePrice(); // prix + perf 1A → injectés dans le simulateur au démarrage
   db.channel('purchases-ch')
     .on('postgres_changes', { event:'*', schema:'public', table:'purchases' }, () => loadAll())
     .subscribe();
@@ -578,8 +581,13 @@ function showSection(name, el, source) {
 // DATA
 async function loadAll() {
   const { data, error } = await db.from('purchases').select('*').order('date', { ascending: false });
-  if (error) { console.error(error); return; }
-  allPurchases = data || [];
+  if (error) {
+    console.error('Supabase:', error);
+    showToast('Impossible de charger les données', 'error');
+    allPurchases = [];
+  } else {
+    allPurchases = data || [];
+  }
   renderDashboard();
   renderPurchasesTable();
 }
