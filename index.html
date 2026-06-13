@@ -556,9 +556,6 @@ function showApp() {
     now.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
   updateSim();
   loadAll();
-  db.channel('purchases-ch')
-    .on('postgres_changes', { event:'*', schema:'public', table:'purchases' }, () => loadAll())
-    .subscribe();
 }
 
 function showSection(name, el, source) {
