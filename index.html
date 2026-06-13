@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+—<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
@@ -956,7 +956,7 @@ async function fetchLivePrice() {
     const url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(
       'https://query1.finance.yahoo.com/v8/finance/chart/EPAB.PA?interval=1d&range=1y&includePrePost=false'
     );
-    const json = await (await fetch(url)).json();
+    const json = await (await fetch(url, {signal:AbortSignal.timeout(7000)})).json();
     const result = json.chart.result[0];
     const closes = result.indicators.quote[0].close.filter(c => c != null);
     const live = result.meta.regularMarketPrice || closes[closes.length - 1];
@@ -976,7 +976,12 @@ async function fetchLivePrice() {
         updateSim();
       }
     }
-  } catch(e) { /* fallback silencieux */ }
+    fetchLivePrice._t = 0;
+  } catch(e) {
+    if ((fetchLivePrice._t=(fetchLivePrice._t||0)+1)<=2)
+      setTimeout(fetchLivePrice,3000);
+    else fetchLivePrice._t=0;
+  }
 }
 
 // ETF CHART
