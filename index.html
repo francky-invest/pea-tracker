@@ -144,7 +144,11 @@
       .auth-card { width: calc(100% - 32px); margin: 16px; padding: 28px 20px; }
     }
     @media (max-width: 900px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } .sim-grid { grid-template-columns: 1fr; } .add-form { grid-template-columns: 1fr 1fr; } }
-  </style>
+  
+    .tirelire-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .tirelire-kpi { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; }
+    .tirelire-kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 6px; }
+    .tirelire-kpi-value { font-size: 22px; font-weight: 700; color: #fff; }</style>
 </head>
 <body>
 
@@ -282,7 +286,44 @@
           <div class="page-sub">ETF Amundi S&P Eurozone PAB — EPAB.PA (LU2195226068)</div>
         </div>
         <div class="page-body">
-          <div class="add-form">
+                    <!-- TIRELIRE CARD -->
+          <div class="card" style="margin-bottom:20px;border-color:rgba(77,124,254,.25);">
+            <div class="card-header" style="margin-bottom:14px;">
+              <div>
+                <div class="card-title">ð¦ Tirelire PEA</div>
+                <div class="card-sub">Cash disponible Â· Trade Republic Â· versements â achats</div>
+              </div>
+            </div>
+            <div class="tirelire-kpis">
+              <div class="tirelire-kpi">
+                <div class="tirelire-kpi-label">Solde</div>
+                <div class="tirelire-kpi-value" id="tirelireSolde">â</div>
+              </div>
+              <div class="tirelire-kpi">
+                <div class="tirelire-kpi-label">Progression</div>
+                <div class="tirelire-kpi-value" id="tirelireProgress" style="color:var(--accent);">â</div>
+              </div>
+              <div class="tirelire-kpi">
+                <div class="tirelire-kpi-label">Manquant</div>
+                <div class="tirelire-kpi-value" id="tirelireManque" style="color:var(--text-sub);">â</div>
+              </div>
+            </div>
+            <div id="tirelireMsg" style="font-size:12px;color:var(--text-sub);margin-bottom:14px;min-height:18px;"></div>
+            <!-- Formulaire versement -->
+            <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;background:var(--bg-elevated);border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;">
+              <div class="form-field">
+                <label>Date versement</label>
+                <input type="date" id="vDate">
+              </div>
+              <div class="form-field">
+                <label>Montant (â¬)</label>
+                <input type="number" id="vAmount" placeholder="50" min="1" step="0.01">
+              </div>
+              <button class="btn-add" id="btnVersement" onclick="addVersement()">+ Versement</button>
+            </div>
+            <div id="versementsContainer"></div>
+          </div>
+<div class="add-form">
             <div class="form-field">
               <label>Date</label>
               <input type="date" id="fDate">
@@ -476,6 +517,7 @@ const { createClient } = window.supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let allPurchases = [];
+let allVersements = [];
 let chartEvol = null;
 let chartSim  = null;
 let cachedLivePrice = null;
@@ -554,8 +596,12 @@ function showApp() {
   const now = new Date();
   document.getElementById('dashDate').textContent =
     now.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const today = now.toISOString().split('T')[0];
+  document.getElementById('fDate').value  = today;
+  document.getElementById('vDate').value  = today;
   updateSim();
   loadAll();
+  loadVersements();
 }
 
 function showSection(name, el, source) {
@@ -677,6 +723,7 @@ function renderPurchasesTable() {
   ).join('');
   el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>ETF</th><th>Montant</th><th>Parts</th><th>Compte</th><th>Note</th><th></th></tr></thead><tbody>' + rows + '</tbody></table><div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:24px;font-size:13px;color:var(--text-sub);"><span>Total investi : <strong style="color:var(--text);">' + fmt(totalInvested) + ' €</strong></span><span>Nb d\'achats : <strong style="color:var(--text);">' + allPurchases.length + '</strong></span></div></div>';
   updateTirelireCard();
+  renderTirelire();
 }
 
 async function addPurchase() {
@@ -711,6 +758,85 @@ async function deletePurchase(id) {
   if (error) showToast('Erreur lors de la suppression.', 'error');
   else showToast('Achat supprimé.', 'success');
 }
+// ââ DATA â VERSEMENTS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+async function loadVersements() {
+  const { data, error } = await db.from('versements').select('*').order('date', { ascending: false });
+  if (error) { console.warn('Versements:', error.message); allVersements = []; }
+  else allVersements = data || [];
+  renderTirelire();
+}
+
+function renderTirelire() {
+  const totalV = allVersements.reduce((s, v) => s + (v.amount || 0), 0);
+  const totalA = allPurchases.reduce((s, p) => s + (p.amount || 0), 0);
+  const solde  = totalV - totalA;
+
+  // Cours live : tenter de lire depuis le KPI ETF, sinon fallback 42
+  let livePrice = 42;
+  const priceEl = document.getElementById('etfLivePrice');
+  if (priceEl && priceEl.textContent !== 'â') {
+    const parsed = parseFloat(priceEl.textContent.replace(/\s/g,'').replace(',','.').replace('â¬',''));
+    if (!isNaN(parsed) && parsed > 0) livePrice = parsed;
+  }
+
+  const manque      = Math.max(0, livePrice - solde);
+  const progression = livePrice > 0 ? Math.min(100, (solde / livePrice) * 100) : 0;
+
+  document.getElementById('tirelireSolde').textContent    = fmt(solde) + ' â¬';
+  document.getElementById('tirelireProgress').textContent = progression.toFixed(0) + ' %';
+
+  const manqueEl = document.getElementById('tirelireManque');
+  if (manque <= 0) {
+    manqueEl.textContent = 'â Achat possible';
+    manqueEl.style.color = 'var(--green)';
+  } else {
+    manqueEl.textContent = fmt(manque) + ' â¬';
+    manqueEl.style.color = 'var(--text-sub)';
+  }
+
+  const msgEl = document.getElementById('tirelireMsg');
+  if (solde >= livePrice) {
+    msgEl.innerHTML = '<span style="color:var(--green)">â Solde suffisant pour acheter 1 part (cours ~' + fmt(livePrice) + ' â¬)</span>';
+  } else if (totalV === 0) {
+    msgEl.innerHTML = '<span style="color:var(--text-muted)">Aucun versement enregistrÃ© â ajoutez vos dÃ©pÃ´ts Trade Republic ci-dessous</span>';
+  } else {
+    const mois = Math.ceil(manque / 50);
+    msgEl.textContent = fmt(manque) + ' â¬ manquants pour la prochaine part Â· ~' + mois + ' mois Ã  50 â¬/mois';
+  }
+
+  // Liste versements
+  const container = document.getElementById('versementsContainer');
+  if (!allVersements.length) { container.innerHTML = ''; return; }
+  const totalVLabel = fmt(totalV);
+  const rows = allVersements.map(v =>
+    '<tr><td>' + fmtDate(v.date) + '</td><td><strong>' + fmt(v.amount) + ' â¬</strong></td><td style="color:var(--text-sub);font-size:12px;">' + (v.source || 'LCL') + (v.note ? ' Â· ' + v.note : '') + '</td><td><button class="btn-icon" onclick="deleteVersement(\'' + v.id + '\')" title="Supprimer">ð</button></td></tr>'
+  ).join('');
+  container.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>Montant</th><th>Source</th><th></th></tr></thead><tbody>' + rows + '</tbody></table><div style="padding:10px 12px;border-top:1px solid var(--border);font-size:12px;color:var(--text-sub);">Total versÃ© : <strong style="color:var(--text);">' + totalVLabel + ' â¬</strong></div></div>';
+}
+
+async function addVersement() {
+  const date   = document.getElementById('vDate').value;
+  const amount = parseFloat(document.getElementById('vAmount').value);
+  const btn    = document.getElementById('btnVersement');
+  if (!date || isNaN(amount) || amount <= 0) { showToast('Date et montant requis.', 'error'); return; }
+  btn.disabled = true; btn.textContent = 'â¦';
+  const { error } = await db.from('versements').insert([{ date, amount, source: 'LCL' }]);
+  btn.disabled = false; btn.textContent = '+ Versement';
+  if (error) { showToast('Erreur : ' + error.message, 'error'); console.error(error); }
+  else {
+    document.getElementById('vAmount').value = '';
+    showToast('Versement enregistrÃ© â', 'success');
+    loadVersements();
+  }
+}
+
+async function deleteVersement(id) {
+  if (!confirm('Supprimer ce versement ?')) return;
+  const { error } = await db.from('versements').delete().eq('id', id);
+  if (error) showToast('Erreur suppression.', 'error');
+  else { showToast('Versement supprimÃ©.', 'success'); loadVersements(); }
+}
+
 
 // ══ TIRELIRE ══
 function updateTirelireCard() {
