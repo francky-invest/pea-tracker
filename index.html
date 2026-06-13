@@ -290,22 +290,22 @@
           <div class="card" style="margin-bottom:20px;border-color:rgba(77,124,254,.25);">
             <div class="card-header" style="margin-bottom:14px;">
               <div>
-                <div class="card-title">ð¦ Tirelire PEA</div>
-                <div class="card-sub">Cash disponible Â· Trade Republic Â· versements â achats</div>
+                <div class="card-title">🏦 Tirelire PEA</div>
+                <div class="card-sub">Cash disponible · Trade Republic · versements − achats</div>
               </div>
             </div>
             <div class="tirelire-kpis">
               <div class="tirelire-kpi">
                 <div class="tirelire-kpi-label">Solde</div>
-                <div class="tirelire-kpi-value" id="tirelireSolde">â</div>
+                <div class="tirelire-kpi-value" id="tirelireSolde">—</div>
               </div>
               <div class="tirelire-kpi">
                 <div class="tirelire-kpi-label">Progression</div>
-                <div class="tirelire-kpi-value" id="tirelireProgress" style="color:var(--accent);">â</div>
+                <div class="tirelire-kpi-value" id="tirelireProgress" style="color:var(--accent);">—</div>
               </div>
               <div class="tirelire-kpi">
                 <div class="tirelire-kpi-label">Manquant</div>
-                <div class="tirelire-kpi-value" id="tirelireManque" style="color:var(--text-sub);">â</div>
+                <div class="tirelire-kpi-value" id="tirelireManque" style="color:var(--text-sub);">—</div>
               </div>
             </div>
             <div id="tirelireMsg" style="font-size:12px;color:var(--text-sub);margin-bottom:14px;min-height:18px;"></div>
@@ -316,7 +316,7 @@
                 <input type="date" id="vDate">
               </div>
               <div class="form-field">
-                <label>Montant (â¬)</label>
+                <label>Montant (€)</label>
                 <input type="number" id="vAmount" placeholder="50" min="1" step="0.01">
               </div>
               <button class="btn-add" id="btnVersement" onclick="addVersement()">+ Versement</button>
@@ -758,7 +758,7 @@ async function deletePurchase(id) {
   if (error) showToast('Erreur lors de la suppression.', 'error');
   else showToast('Achat supprimé.', 'success');
 }
-// ââ DATA â VERSEMENTS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── DATA — VERSEMENTS ─────────────────────────────────────────────────────────
 async function loadVersements() {
   const { data, error } = await db.from('versements').select('*').order('date', { ascending: false });
   if (error) { console.warn('Versements:', error.message); allVersements = []; }
@@ -774,34 +774,34 @@ function renderTirelire() {
   // Cours live : tenter de lire depuis le KPI ETF, sinon fallback 42
   let livePrice = 42;
   const priceEl = document.getElementById('etfLivePrice');
-  if (priceEl && priceEl.textContent !== 'â') {
-    const parsed = parseFloat(priceEl.textContent.replace(/\s/g,'').replace(',','.').replace('â¬',''));
+  if (priceEl && priceEl.textContent !== '—') {
+    const parsed = parseFloat(priceEl.textContent.replace(/\s/g,'').replace(',','.').replace('€',''));
     if (!isNaN(parsed) && parsed > 0) livePrice = parsed;
   }
 
   const manque      = Math.max(0, livePrice - solde);
   const progression = livePrice > 0 ? Math.min(100, (solde / livePrice) * 100) : 0;
 
-  document.getElementById('tirelireSolde').textContent    = fmt(solde) + ' â¬';
+  document.getElementById('tirelireSolde').textContent    = fmt(solde) + ' €';
   document.getElementById('tirelireProgress').textContent = progression.toFixed(0) + ' %';
 
   const manqueEl = document.getElementById('tirelireManque');
   if (manque <= 0) {
-    manqueEl.textContent = 'â Achat possible';
+    manqueEl.textContent = '✅ Achat possible';
     manqueEl.style.color = 'var(--green)';
   } else {
-    manqueEl.textContent = fmt(manque) + ' â¬';
+    manqueEl.textContent = fmt(manque) + ' €';
     manqueEl.style.color = 'var(--text-sub)';
   }
 
   const msgEl = document.getElementById('tirelireMsg');
   if (solde >= livePrice) {
-    msgEl.innerHTML = '<span style="color:var(--green)">â Solde suffisant pour acheter 1 part (cours ~' + fmt(livePrice) + ' â¬)</span>';
+    msgEl.innerHTML = '<span style="color:var(--green)">✅ Solde suffisant pour acheter 1 part (cours ~' + fmt(livePrice) + ' €)</span>';
   } else if (totalV === 0) {
-    msgEl.innerHTML = '<span style="color:var(--text-muted)">Aucun versement enregistrÃ© â ajoutez vos dÃ©pÃ´ts Trade Republic ci-dessous</span>';
+    msgEl.innerHTML = '<span style="color:var(--text-muted)">Aucun versement enregistré — ajoutez vos dépôts Trade Republic ci-dessous</span>';
   } else {
     const mois = Math.ceil(manque / 50);
-    msgEl.textContent = fmt(manque) + ' â¬ manquants pour la prochaine part Â· ~' + mois + ' mois Ã  50 â¬/mois';
+    msgEl.textContent = fmt(manque) + ' € manquants pour la prochaine part · ~' + mois + ' mois à 50 €/mois';
   }
 
   // Liste versements
@@ -809,9 +809,9 @@ function renderTirelire() {
   if (!allVersements.length) { container.innerHTML = ''; return; }
   const totalVLabel = fmt(totalV);
   const rows = allVersements.map(v =>
-    '<tr><td>' + fmtDate(v.date) + '</td><td><strong>' + fmt(v.amount) + ' â¬</strong></td><td style="color:var(--text-sub);font-size:12px;">' + (v.source || 'LCL') + (v.note ? ' Â· ' + v.note : '') + '</td><td><button class="btn-icon" onclick="deleteVersement(\'' + v.id + '\')" title="Supprimer">ð</button></td></tr>'
+    '<tr><td>' + fmtDate(v.date) + '</td><td><strong>' + fmt(v.amount) + ' €</strong></td><td style="color:var(--text-sub);font-size:12px;">' + (v.source || 'LCL') + (v.note ? ' · ' + v.note : '') + '</td><td><button class="btn-icon" onclick="deleteVersement(\'' + v.id + '\')" title="Supprimer">🗑</button></td></tr>'
   ).join('');
-  container.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>Montant</th><th>Source</th><th></th></tr></thead><tbody>' + rows + '</tbody></table><div style="padding:10px 12px;border-top:1px solid var(--border);font-size:12px;color:var(--text-sub);">Total versÃ© : <strong style="color:var(--text);">' + totalVLabel + ' â¬</strong></div></div>';
+  container.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>Montant</th><th>Source</th><th></th></tr></thead><tbody>' + rows + '</tbody></table><div style="padding:10px 12px;border-top:1px solid var(--border);font-size:12px;color:var(--text-sub);">Total versé : <strong style="color:var(--text);">' + totalVLabel + ' €</strong></div></div>';
 }
 
 async function addVersement() {
@@ -819,13 +819,13 @@ async function addVersement() {
   const amount = parseFloat(document.getElementById('vAmount').value);
   const btn    = document.getElementById('btnVersement');
   if (!date || isNaN(amount) || amount <= 0) { showToast('Date et montant requis.', 'error'); return; }
-  btn.disabled = true; btn.textContent = 'â¦';
+  btn.disabled = true; btn.textContent = '…';
   const { error } = await db.from('versements').insert([{ date, amount, source: 'LCL' }]);
   btn.disabled = false; btn.textContent = '+ Versement';
   if (error) { showToast('Erreur : ' + error.message, 'error'); console.error(error); }
   else {
     document.getElementById('vAmount').value = '';
-    showToast('Versement enregistrÃ© â', 'success');
+    showToast('Versement enregistré ✓', 'success');
     loadVersements();
   }
 }
@@ -834,7 +834,7 @@ async function deleteVersement(id) {
   if (!confirm('Supprimer ce versement ?')) return;
   const { error } = await db.from('versements').delete().eq('id', id);
   if (error) showToast('Erreur suppression.', 'error');
-  else { showToast('Versement supprimÃ©.', 'success'); loadVersements(); }
+  else { showToast('Versement supprimé.', 'success'); loadVersements(); }
 }
 
 
