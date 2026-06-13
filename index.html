@@ -629,6 +629,7 @@ async function loadAll() {
   }
   renderDashboard();
   renderPurchasesTable();
+  renderTirelire();
 }
 
 // DASHBOARD
@@ -749,6 +750,7 @@ async function addPurchase() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('fDate').value = today;
     showToast('Achat enregistré ✓', 'success');
+    loadAll();
   }
 }
 
@@ -757,6 +759,7 @@ async function deletePurchase(id) {
   const { error } = await db.from('purchases').delete().eq('id', id);
   if (error) showToast('Erreur lors de la suppression.', 'error');
   else showToast('Achat supprimé.', 'success');
+  loadAll();
 }
 // ── DATA — VERSEMENTS ─────────────────────────────────────────────────────────
 async function loadVersements() {
