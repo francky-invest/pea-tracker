@@ -961,7 +961,7 @@ function updateTirelireCard() {
     <div style="font-size:12px;color:var(--text-sub);">
       ${tirelire >= cashNeeded
         ? `✅ Seuil atteint ! (${cashNeeded.toFixed(2)} € pour 1 part)`
-        : `Il manque ${(cashNeeded - tirelire).toFixed(2)} € pour déclencher un achat bonus (en dehors du plan mensuel).\nChaque mois, ${cashPerMonth.toFixed(2)} € de surplus (50 € − 1 part) + ${interestPerMonth.toFixed(2)} € d'intérêts TR = +${cashPerMonthWithInterest.toFixed(2)} €/mois dans la tirelire.${moisRestants && moisRestants > 0 ? ` → ~${moisRestants} mois avant achat bonus.` : ''}`}
+        : `Il manque ${(cashNeeded - tirelire).toFixed(2)} € pour un achat bonus (hors plan mensuel). Surplus variable : 50 € − cours EPAB (${livePrice.toFixed(2)} €) + intérêts TR (3 %/an sur le solde) = +${cashPerMonthWithInterest.toFixed(2)} €/mois.${moisRestants && moisRestants > 0 ? ` → ~${moisRestants} mois avant achat bonus.` : ''}`}
     </div>
     ${statusHtml}
   `;
