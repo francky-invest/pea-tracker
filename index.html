@@ -890,6 +890,21 @@ async function deleteVersement(id) {
 
 
 // ══ TIRELIRE ══
+function calcInteretsTirelire() {
+  const events = [
+    ...(allVersements||[]).map(v=>({date:v.date,delta:+(v.amount||0)})),
+    ...(allPurchases||[]).map(p=>({date:p.date,delta:-(p.amount||0)}))
+  ].sort((a,b)=>a.date.localeCompare(b.date));
+  let balance=0,totalInterest=0,lastDate=null;
+  const today=new Date().toISOString().slice(0,10);
+  for(const ev of events){
+    if(lastDate&&balance>0){const days=(new Date(ev.date)-new Date(lastDate))/86400000;if(days>0)totalInterest+=balance*0.03/365*days;}
+    balance+=ev.delta;lastDate=ev.date;
+  }
+  if(lastDate&&balance>0){const days=(new Date(today)-new Date(lastDate))/86400000;if(days>0)totalInterest+=balance*0.03/365*days;}
+  return Math.max(0,+totalInterest.toFixed(2));
+}
+
 function updateTirelireCard() {
   const el = document.getElementById('tirelireContent');
   if (!el) return;
@@ -899,7 +914,9 @@ function updateTirelireCard() {
   const count = allPurchases.length;
 
   const versements = count * BUDGET;
-  const tirelire = Math.max(0, +(versements - totalInvested).toFixed(2));
+  const tirelireBrut = Math.max(0, +(versements - totalInvested).toFixed(2));
+  const interetsAccumules = calcInteretsTirelire();
+  const tirelire = +(tirelireBrut + interetsAccumules).toFixed(2);
   const cashNeeded = +livePrice.toFixed(2);
   const partsPerMonth = Math.floor(BUDGET / livePrice);
   const cashPerMonth = +(BUDGET - partsPerMonth * livePrice).toFixed(2);
