@@ -822,10 +822,10 @@ function renderTirelire() {
   const totalA = allPurchases.reduce((s, p) => s + (p.amount || 0), 0);
   const solde  = totalV - totalA;
 
-  // Cours live : tenter de lire depuis le KPI ETF, sinon fallback 42
-  let livePrice = 42;
+  // Cours live : cachedLivePrice en priorité, sinon lecture DOM, sinon fallback 42
+  let livePrice = (typeof cachedLivePrice === 'number' && cachedLivePrice > 0) ? cachedLivePrice : 42;
   const priceEl = document.getElementById('etfLivePrice');
-  if (priceEl && priceEl.textContent !== '—') {
+  if (livePrice === 42 && priceEl && priceEl.textContent !== '—') {
     const parsed = parseFloat(priceEl.textContent.replace(/\s/g,'').replace(',','.').replace('€',''));
     if (!isNaN(parsed) && parsed > 0) livePrice = parsed;
   }
