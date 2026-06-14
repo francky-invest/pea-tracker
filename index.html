@@ -815,6 +815,7 @@ async function loadVersements() {
   if (error) { console.warn('Versements:', error.message); allVersements = []; }
   else allVersements = data || [];
   renderTirelire();
+  updateTirelireCard(); // recalcule avec allVersements chargés
 }
 
 function renderTirelire() {
