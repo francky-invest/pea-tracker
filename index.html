@@ -911,10 +911,8 @@ function updateTirelireCard() {
   const BUDGET = 50;
   const livePrice = (typeof cachedLivePrice === 'number' && cachedLivePrice > 0) ? cachedLivePrice : (parseFloat(document.getElementById('sPrice').value) || 42);
   const totalInvested = allPurchases.reduce((s, p) => s + (p.amount || 0), 0);
-  const count = allPurchases.length;
-
-  const versements = count * BUDGET;
-  const tirelireBrut = Math.max(0, +(versements - totalInvested).toFixed(2));
+  const totalVersements = (allVersements||[]).reduce((s, v) => s + (v.amount || 0), 0);
+  const tirelireBrut = Math.max(0, +(totalVersements - totalInvested).toFixed(2));
   const interetsAccumules = calcInteretsTirelire();
   const tirelire = +(tirelireBrut + interetsAccumules).toFixed(2);
   const cashNeeded = +livePrice.toFixed(2);
