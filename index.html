@@ -1048,6 +1048,7 @@ function updateEtfLiveDisplay(price) {
   const card = document.getElementById('etfPerfCard');
   if (card) card.style.borderColor = perf >= 0 ? 'rgba(34,197,94,.3)' : 'rgba(239,68,68,.3)';
   updateDashboardLiveKpis();
+  renderTirelire(); // rafraîchit la tirelire avec le prix live réel
 
   // Injecter le prix live dans le slider du simulateur
   const sPriceEl = document.getElementById('sPrice');
