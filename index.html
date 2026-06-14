@@ -351,11 +351,23 @@
                 <div class="tirelire-kpi-value" id="tirelireProgress" style="color:var(--accent);">—</div>
               </div>
               <div class="tirelire-kpi">
-                <div class="tirelire-kpi-label">Manquant</div>
-                <div class="tirelire-kpi-value" id="tirelireManque" style="color:var(--text-sub);">—</div>
+                <div class="tirelire-kpi-label">Cours EPAB</div>
+                <div class="tirelire-kpi-value" id="tirelireCours">—</div>
+              </div>
+              <div class="tirelire-kpi">
+                <div class="tirelire-kpi-label">Progression</div>
+                <div class="tirelire-kpi-value" id="tirelireProgress" style="color:var(--accent);">—</div>
+              </div>
+              <div class="tirelire-kpi" style="border-color:rgba(34,197,94,.25);">
+                <div class="tirelire-kpi-label">Intérêts /mois</div>
+                <div class="tirelire-kpi-value" id="tirelireInterets" style="color:var(--green);">—</div>
               </div>
             </div>
-            <div id="tirelireMsg" style="font-size:12px;color:var(--text-sub);margin-bottom:14px;min-height:18px;"></div>
+            <div style="background:rgba(255,255,255,.06);border-radius:99px;height:6px;overflow:hidden;margin:12px 0 10px;">
+              <div id="tirelireBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#7c5cfc);border-radius:99px;transition:width .5s ease;"></div>
+            </div>
+            <div id="tirelireMsg" style="font-size:12px;color:var(--text-sub);margin-bottom:10px;min-height:18px;"></div>
+            <div id="tirelireStatus" style="margin-bottom:14px;"></div>
             <!-- Formulaire versement -->
             <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;background:var(--bg-elevated);border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;">
               <div class="form-field">
@@ -397,16 +409,6 @@
             <button class="btn-add" id="btnAdd" onclick="addPurchase()">+ Ajouter</button>
           </div>
 
-          <!-- 🐷 TIRELIRE -->
-          <div class="card" style="margin-bottom:20px;">
-            <div class="card-header">
-              <div>
-                <div class="card-title">🐷 Stratégie Tirelire</div>
-                <div class="card-sub">Cash accumulé · 50 €/mois · Trade Republic (0 € de frais)</div>
-              </div>
-            </div>
-            <div id="tirelireContent"><div class="loading"><div class="spinner"></div> Calcul en cours…</div></div>
-          </div>
 
           <div class="card" style="padding:0; overflow:hidden;">
             <div style="padding:20px 24px 16px; border-bottom:1px solid var(--border);">
@@ -819,53 +821,66 @@ async function loadVersements() {
 }
 
 function renderTirelire() {
-  const totalV = allVersements.reduce((s, v) => s + (v.amount || 0), 0);
+  const totalV = (allVersements||[]).reduce((s, v) => s + (v.amount || 0), 0);
   const totalA = allPurchases.reduce((s, p) => s + (p.amount || 0), 0);
-  const solde  = totalV - totalA;
+  const solde  = +(totalV - totalA).toFixed(2);
 
-  // Cours live : cachedLivePrice en priorité, sinon lecture DOM, sinon fallback 42
-  let livePrice = (typeof cachedLivePrice === 'number' && cachedLivePrice > 0) ? cachedLivePrice : 42;
-  const priceEl = document.getElementById('etfLivePrice');
-  if (livePrice === 42 && priceEl && priceEl.textContent !== '—') {
-    const parsed = parseFloat(priceEl.textContent.replace(/\s/g,'').replace(',','.').replace('€',''));
-    if (!isNaN(parsed) && parsed > 0) livePrice = parsed;
+  const livePrice = (typeof cachedLivePrice === 'number' && cachedLivePrice > 0) ? cachedLivePrice : 42;
+
+  const manque        = Math.max(0, livePrice - solde);
+  const progression   = livePrice > 0 ? Math.min(100, (solde / livePrice) * 100) : 0;
+  const interetsMois  = +(Math.max(0, solde) * 0.03 / 12).toFixed(2);
+  const cashPerMonth  = +(50 - Math.floor(50 / livePrice) * livePrice).toFixed(2);
+  const surplusTotal  = +(cashPerMonth + interetsMois).toFixed(2);
+  const moisRestants  = surplusTotal > 0 && manque > 0 ? Math.ceil(manque / surplusTotal) : null;
+
+  const soldeEl = document.getElementById('tirelireSolde');
+  const coursEl = document.getElementById('tirelireCours');
+  const progEl  = document.getElementById('tirelireProgress');
+  const intEl   = document.getElementById('tirelireInterets');
+  const barEl   = document.getElementById('tirelireBar');
+  const msgEl   = document.getElementById('tirelireMsg');
+  const statEl  = document.getElementById('tirelireStatus');
+
+  if (soldeEl) { soldeEl.textContent = fmt(solde) + ' €'; soldeEl.style.color = solde >= livePrice ? 'var(--green)' : '#fff'; }
+  if (coursEl) coursEl.textContent = livePrice.toFixed(2) + ' €';
+  if (progEl)  progEl.textContent  = progression.toFixed(0) + ' %';
+  if (intEl)   intEl.textContent   = '+' + interetsMois.toFixed(2) + ' €';
+
+  if (barEl) {
+    barEl.style.width      = Math.min(100, progression).toFixed(1) + '%';
+    barEl.style.background = solde >= livePrice ? 'var(--green)' : 'linear-gradient(90deg,var(--accent),#7c5cfc)';
   }
 
-  const manque      = Math.max(0, livePrice - solde);
-  const progression = livePrice > 0 ? Math.min(100, (solde / livePrice) * 100) : 0;
-
-  document.getElementById('tirelireSolde').textContent    = fmt(solde) + ' €';
-  document.getElementById('tirelireProgress').textContent = progression.toFixed(0) + ' %';
-
-  const manqueEl = document.getElementById('tirelireManque');
-  if (manque <= 0) {
-    manqueEl.textContent = '✅ Achat possible';
-    manqueEl.style.color = 'var(--green)';
-  } else {
-    manqueEl.textContent = fmt(manque) + ' €';
-    manqueEl.style.color = 'var(--text-sub)';
+  if (msgEl) {
+    if (solde >= livePrice) {
+      msgEl.innerHTML = '<span style="color:var(--green)">✅ Solde suffisant pour acheter 1 part supplémentaire (cours ' + livePrice.toFixed(2) + ' €)</span>';
+    } else if (totalV === 0) {
+      msgEl.innerHTML = '<span style="color:var(--text-muted)">Aucun versement enregistré — ajoutez vos dépôts Trade Republic ci-dessous</span>';
+    } else {
+      msgEl.textContent = 'Il manque ' + fmt(manque) + ' € · surplus ~+' + surplusTotal.toFixed(2) + ' €/mois (dont ' + interetsMois.toFixed(2) + ' € intérêts TR 3%/an) → ~' + (moisRestants || '?') + ' mois';
+    }
   }
 
-  const msgEl = document.getElementById('tirelireMsg');
-  if (solde >= livePrice) {
-    msgEl.innerHTML = '<span style="color:var(--green)">✅ Solde suffisant pour acheter 1 part (cours ~' + fmt(livePrice) + ' €)</span>';
-  } else if (totalV === 0) {
-    msgEl.innerHTML = '<span style="color:var(--text-muted)">Aucun versement enregistré — ajoutez vos dépôts Trade Republic ci-dessous</span>';
-  } else {
-    const mois = Math.ceil(manque / 50);
-    msgEl.textContent = fmt(manque) + ' € manquants pour la prochaine part · ~' + mois + ' mois à 50 €/mois';
+  if (statEl) {
+    const extraParts = solde > 0 ? Math.floor(solde / livePrice) : 0;
+    if (extraParts >= 2) {
+      statEl.innerHTML = '<div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;color:var(--green);">🚀 Super tirelire ! Tu peux acheter <strong>' + extraParts + ' parts supplémentaires</strong> ce mois-ci !</div>';
+    } else if (solde >= livePrice) {
+      statEl.innerHTML = '<div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;color:var(--green);">🎯 Tirelire pleine ! Tu peux racheter 1 part supplémentaire ce mois-ci. 🎉</div>';
+    } else {
+      statEl.innerHTML = '';
+    }
   }
 
-  // Liste versements
   const container = document.getElementById('versementsContainer');
+  if (!container) return;
   if (!allVersements.length) { container.innerHTML = ''; return; }
-  const totalVLabel = fmt(totalV);
   const rows = allVersements.map(v =>
     '<tr><td>' + fmtDate(v.date) + '</td><td><strong>' + fmt(v.amount) + ' €</strong></td><td style="color:var(--text-sub);font-size:12px;">' + (v.source || 'LCL') + (v.note ? ' · ' + v.note : '') + '</td><td><button class="btn-icon" onclick="deleteVersement(\'' + v.id + '\')" title="Supprimer">🗑</button></td></tr>'
   ).join('');
-  container.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>Montant</th><th>Source</th><th></th></tr></thead><tbody>' + rows + '</tbody></table><div style="padding:10px 12px;border-top:1px solid var(--border);font-size:12px;color:var(--text-sub);">Total versé : <strong style="color:var(--text);">' + totalVLabel + ' €</strong></div></div>';
+  container.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>Montant</th><th>Source</th><th></th></tr></thead><tbody>' + rows + '</tbody></table><div style="padding:10px 12px;border-top:1px solid var(--border);font-size:12px;color:var(--text-sub);">Total versé : <strong style="color:var(--text);">' + fmt(totalV) + ' €</strong></div></div>';
 }
-
 async function addVersement() {
   const date   = document.getElementById('vDate').value;
   const amount = parseFloat(document.getElementById('vAmount').value);
@@ -890,81 +905,9 @@ async function deleteVersement(id) {
 }
 
 
-// ══ TIRELIRE ══
-function calcInteretsTirelire() {
-  const events = [
-    ...(allVersements||[]).map(v=>({date:v.date,delta:+(v.amount||0)})),
-    ...(allPurchases||[]).map(p=>({date:p.date,delta:-(p.amount||0)}))
-  ].sort((a,b)=>a.date.localeCompare(b.date));
-  let balance=0,totalInterest=0,lastDate=null;
-  const today=new Date().toISOString().slice(0,10);
-  for(const ev of events){
-    if(lastDate&&balance>0){const days=(new Date(ev.date)-new Date(lastDate))/86400000;if(days>0)totalInterest+=balance*0.03/365*days;}
-    balance+=ev.delta;lastDate=ev.date;
-  }
-  if(lastDate&&balance>0){const days=(new Date(today)-new Date(lastDate))/86400000;if(days>0)totalInterest+=balance*0.03/365*days;}
-  return Math.max(0,+totalInterest.toFixed(2));
-}
 
-function updateTirelireCard() {
-  const el = document.getElementById('tirelireContent');
-  if (!el) return;
-  const BUDGET = 50;
-  const livePrice = (typeof cachedLivePrice === 'number' && cachedLivePrice > 0) ? cachedLivePrice : (parseFloat(document.getElementById('sPrice').value) || 42);
-  const totalInvested = allPurchases.reduce((s, p) => s + (p.amount || 0), 0);
-  const totalVersements = (allVersements||[]).reduce((s, v) => s + (v.amount || 0), 0);
-  const tirelireBrut = Math.max(0, +(totalVersements - totalInvested).toFixed(2));
-  const interetsAccumules = calcInteretsTirelire();
-  const tirelire = +(tirelireBrut + interetsAccumules).toFixed(2);
-  const cashNeeded = +livePrice.toFixed(2);
-  const partsPerMonth = Math.floor(BUDGET / livePrice);
-  const cashPerMonth = +(BUDGET - partsPerMonth * livePrice).toFixed(2);
-  const INTEREST_RATE = 0.03; // 3%/an Trade Republic
-  const interestPerMonth = +(tirelire * INTEREST_RATE / 12).toFixed(2);
-  const cashPerMonthWithInterest = +(cashPerMonth + interestPerMonth).toFixed(2);
-  const extraParts = tirelire > 0 ? Math.floor(tirelire / cashNeeded) : 0;
-  const pct = Math.min(100, (tirelire / cashNeeded) * 100);
-  const moisRestants = cashPerMonthWithInterest > 0 ? Math.ceil((cashNeeded - tirelire) / cashPerMonthWithInterest) : null;
+function updateTirelireCard() { renderTirelire(); }
 
-  let statusHtml = '';
-  if (extraParts >= 2) {
-    statusHtml = `<div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;color:var(--green);margin-top:12px;">🚀 Super tirelire ! Tu peux acheter <strong>${extraParts} parts supplémentaires</strong> ce mois-ci !</div>`;
-  } else if (tirelire >= cashNeeded) {
-    statusHtml = `<div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;color:var(--green);margin-top:12px;">🎯 Tirelire pleine ! Tu peux racheter 1 part supplémentaire ce mois-ci. 🎉</div>`;
-  }
-
-  const progressColor = tirelire >= cashNeeded ? 'var(--green)' : 'linear-gradient(90deg,var(--accent),#7c5cfc)';
-
-  el.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:12px;margin-bottom:14px;">
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
-        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Cours EPAB</div>
-        <div style="font-size:18px;font-weight:700;">${livePrice.toFixed(2)} €</div>
-      </div>
-      <div style="background:var(--bg);border:1px solid ${tirelire >= cashNeeded ? 'rgba(34,197,94,.35)' : 'var(--border)'};border-radius:8px;padding:12px 14px;">
-        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Solde tirelire</div>
-        <div style="font-size:18px;font-weight:700;color:${tirelire >= cashNeeded ? 'var(--green)' : 'var(--gold)'};">${tirelire.toFixed(2)} €</div>
-      </div>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
-        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Progression</div>
-        <div style="font-size:18px;font-weight:700;color:var(--accent);">${pct.toFixed(0)} %</div>
-      </div>
-      <div style="background:var(--bg);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:12px 14px;">
-        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Intérêts /mois</div>
-        <div style="font-size:18px;font-weight:700;color:var(--green);">+${interestPerMonth.toFixed(2)} €</div>
-      </div>
-    </div>
-    <div style="background:rgba(255,255,255,.06);border-radius:99px;height:6px;overflow:hidden;margin-bottom:10px;">
-      <div style="height:100%;width:${Math.min(100,pct).toFixed(1)}%;background:${progressColor};border-radius:99px;transition:width .5s ease;"></div>
-    </div>
-    <div style="font-size:12px;color:var(--text-sub);">
-      ${tirelire >= cashNeeded
-        ? `✅ Seuil atteint ! (${cashNeeded.toFixed(2)} € pour 1 part)`
-        : `Il manque ${(cashNeeded - tirelire).toFixed(2)} € pour un achat bonus (hors plan mensuel). Surplus variable : 50 € − cours EPAB (${livePrice.toFixed(2)} €) + intérêts TR (3 %/an sur le solde) = +${cashPerMonthWithInterest.toFixed(2)} €/mois.${moisRestants && moisRestants > 0 ? ` → ~${moisRestants} mois avant achat bonus.` : ''}`}
-    </div>
-    ${statusHtml}
-  `;
-}
 
 // SIMULATEUR
 function updateSim() {
