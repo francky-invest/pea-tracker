@@ -1119,5 +1119,32 @@ function showToast(msg, type) {
 
 initPin();
 </script>
+<script id="diag-overflow">
+(function(){
+  if(window.innerWidth>720)return;
+  window.addEventListener('load',function(){
+    setTimeout(function(){
+      var vw=document.documentElement.clientWidth;
+      var found=[];
+      document.querySelectorAll('*').forEach(function(el){
+        var r=el.getBoundingClientRect();
+        if(r.right>vw+2||r.width>vw+2){
+          var id=el.id?'#'+el.id:'';
+          var cls=el.className&&typeof el.className==='string'?'.'+el.className.trim().split(' ')[0]:'';
+          found.push(el.tagName.toLowerCase()+id+cls+' w='+Math.round(r.width)+'px r='+Math.round(r.right));
+        }
+      });
+      if(!found.length)found=['OK - pas de debordement'];
+      var d=document.createElement('div');
+      d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:rgba(0,0,0,0.9);color:#0f0;font:12px monospace;padding:10px;max-height:60vh;overflow-y:auto;white-space:pre;';
+      d.textContent='VW='+vw+'
+'+found.slice(0,20).join('
+');
+      d.onclick=function(){d.remove();};
+      document.body.appendChild(d);
+    },2500);
+  });
+})();
+</script>
 </body>
 </html>
