@@ -999,12 +999,18 @@ async function fetchLivePrice() {
 }
 
 // ETF CHART
-const totalShares = allPurchases.reduce((s, p) => s + (p.shares || 0), 0);
-  const totalCost = allPurchases.reduce((s, p) => s + (p.amount || 0), 0);
+let etfMarketChartInst = null, currentEtfPeriod = '1A';
+
+function updateEtfLiveDisplay(price) {
+  cachedLivePrice = price;
+  document.getElementById('etfLivePrice').textContent =
+    price.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  const totalShares = allPurchases.reduce((s, p) => s + (p.shares || 0), 0);
+  const totalCost   = allPurchases.reduce((s, p) => s + (p.amount || 0), 0);
   const pru = totalShares > 0 ? +(totalCost / totalShares).toFixed(4) : 42.03;
   const perf = ((price - pru) / pru) * 100;
   const pruSubEl = document.getElementById('etfPruSub');
-  if (pruSubEl && totalShares > 0) pruSubEl.textContent = 'PRU ' + pru.toFixed(2).replace('.', ',') + ' ₼';
+  if (pruSubEl && totalShares > 0) pruSubEl.textContent = 'PRU ' + pru.toFixed(2).replace('.', ',') + ' €';
   const perfEl = document.getElementById('etfPerfFirst');
   const sign = perf >= 0 ? '+' : '';
   perfEl.textContent = sign + perf.toFixed(2) + ' %';
@@ -1012,7 +1018,7 @@ const totalShares = allPurchases.reduce((s, p) => s + (p.shares || 0), 0);
   const card = document.getElementById('etfPerfCard');
   if (card) card.style.borderColor = perf >= 0 ? 'rgba(34,197,94,.3)' : 'rgba(239,68,68,.3)';
   updateDashboardLiveKpis();
-  updateTirelireCard(); // rafraîchit la tirelire avec le prix live réel
+  updateTirelireCard(); // rafraïchit la tirelire avec le prix live réel
   renderTirelire();
 
   // Injecter le prix live dans le slider du simulateur
