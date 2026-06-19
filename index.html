@@ -999,14 +999,12 @@ async function fetchLivePrice() {
 }
 
 // ETF CHART
-const FIRST_PURCHASE_PRICE = 42.03;
-let etfMarketChartInst = null, currentEtfPeriod = '1A';
-
-function updateEtfLiveDisplay(price) {
-  cachedLivePrice = price;
-  document.getElementById('etfLivePrice').textContent =
-    price.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-  const perf = ((price - FIRST_PURCHASE_PRICE) / FIRST_PURCHASE_PRICE) * 100;
+const totalShares = allPurchases.reduce((s, p) => s + (p.shares || 0), 0);
+  const totalCost = allPurchases.reduce((s, p) => s + (p.amount || 0), 0);
+  const pru = totalShares > 0 ? +(totalCost / totalShares).toFixed(4) : 42.03;
+  const perf = ((price - pru) / pru) * 100;
+  const pruSubEl = document.getElementById('etfPruSub');
+  if (pruSubEl && totalShares > 0) pruSubEl.textContent = 'PRU ' + pru.toFixed(2).replace('.', ',') + ' ₼';
   const perfEl = document.getElementById('etfPerfFirst');
   const sign = perf >= 0 ? '+' : '';
   perfEl.textContent = sign + perf.toFixed(2) + ' %';
