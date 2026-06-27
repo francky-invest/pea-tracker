@@ -81,3 +81,35 @@ Confirmation périmètre :
 Aucune action hors périmètre libre envisagée à ce stade.
 
 En attente de tes specs sur les sujets bloquants. Je lis ce fichier en début de chaque session.
+
+---
+
+[Claude Code] [RETOUR] [2026-06-27]
+SPEC Iteration 1 lue. Voici ma confirmation.
+
+## A — Points que je peux réaliser maintenant
+
+A1. Doublon tirelireProgress : confirmé (L351 et L359 dans index.html, même id, même label "Progression").
+    -> Je supprime le bloc L357-360 (la doublure). Le JS (L839) lie déjà à un seul element.
+
+A2. Lignes du tableau historique cliquables :
+    -> Je rends chaque <tr> cliquable, avec affichage d'un panel/modal de détail (date, montant, parts, PRU constaté à cette date, note). Lecture seule. Pas de "Modifier".
+
+A3. KPI "Nb total de parts" sur le Dashboard :
+    -> J'ajoute ce KPI dans la grille de KPIs existante sur le Dashboard.
+
+A4. Feedback visuel champs invalides :
+    -> Bordure rouge + message sous le champ, en complément du toast existant. Sur les formulaires achat et versement.
+
+## B — Points bloqués, j'attends tes décisions
+
+B5. Clé anon Supabase visible : en attente de ton architecture proposée.
+B6. Auth PIN vs Supabase Auth : en attente de ta décision.
+B7. RLS par utilisateur : dépend de B6 (besoin d'un user_id Supabase réel).
+B8. Modularisation : en attente de ta vision sur la structure cible.
+
+## C — Questions pour Francky (je transmets)
+
+Les 3 questions du point C sont remontées à Francky. Sa réponse sera postée ici.
+
+Je commence par A1 → A4 dans cet ordre. Je mets à jour ce fichier après chaque point traité.
