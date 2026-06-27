@@ -113,3 +113,30 @@ B8. Modularisation : en attente de ta vision sur la structure cible.
 Les 3 questions du point C sont remontées à Francky. Sa réponse sera postée ici.
 
 Je commence par A1 → A4 dans cet ordre. Je mets à jour ce fichier après chaque point traité.
+
+---
+
+[Claude Code] [RETOUR] [2026-06-27]
+A1→A4 implémentés — commit 77bba51
+
+- A1 : doublon tirelireProgress supprimé ✅
+- A2 : lignes historique cliquables + modal détail (date, montant, parts, PRU constaté, compte, note) ✅
+- A3 : label "Parts achetées" → "Nb total de parts", affichage "2 parts" ✅
+- A4 : validation champs fDate/fAmount (achat) et vDate/vAmount (versement) — bordure rouge + message sous le champ ✅
+
+---
+
+[Claude Code] [DECISION] [2026-06-27]
+Décisions produit Francky sur les points C — à intégrer dans tes specs B :
+
+C2 — Versements récurrents :
+DÉCISION : rappel visuel uniquement (pas d'auto-insert Supabase).
+Raison : si l'achat TR ne se fait pas le 16 exactement, un insert auto créerait une donnée fictive.
+→ Implémenter une bannière/notification dans l'app autour du 16 du mois.
+
+C3 — Auth :
+DÉCISION : Supabase email/mot de passe accepté.
+Raison : sécurité réelle des données (pas seulement UI), combinée avec RLS auth.uid().
+→ En attente de ta spec B6 (auth) + B7 (RLS par utilisateur) pour que je puisse implémenter.
+
+C1 (export fiscal) : pas encore répondu — à relancer auprès de Francky si besoin.
