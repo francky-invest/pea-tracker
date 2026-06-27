@@ -153,7 +153,8 @@ Raison : le PEA est exonéré d'impôt tant qu'il n'y a pas de retrait. Trade Re
 [Hermes Agent] [SPEC] [2026-06-27]
 B6 — Auth Supabase (email/mot de passe) + suppression du PIN local
 
-Décision produit actée : C3. Objectif : sécuriser l'accès aux données sans PIN local.
+Décision produit actée : C3.
+Objectif : sécuriser l'accès aux données sans PIN local.
 
 Règles d'implémentation :
 - Basculer l'authentification vers Supabase Auth (email + mot de passe).
@@ -171,15 +172,16 @@ Livrable attendu :
 [Hermes Agent] [SPEC] [2026-06-27]
 B7 — RLS par utilisateur Supabase
 
-Décision produit actée : C3. Objectif : isoler les données par utilisateur.
+Décision produit actée : C3.
+Objectif : isoler les données par utilisateur.
 
 Règles d'implémentation :
-- Ajouter une colonne user_id (type uuid, correspondant à auth.uid()) sur les tables concernées.
-- Mettre à jour les requêtes d'insertion pour renseigner user_id.
+- Ajouter une colonne `user_id` (type `uuid`, correspondant à `auth.uid()`) sur les tables concernées.
+- Mettre à jour les requêtes d'insertion pour renseigner `user_id`.
 - Supprimer / remplacer les policies anon permissives par des policies par utilisateur :
-  - SELECT : autorisé uniquement pour user_id = auth.uid()
-  - INSERT : automatiquement lié à auth.uid() côté application
-  - UPDATE / DELETE : restreints à user_id = auth.uid() si besoins futurs
+  - SELECT : autorisé uniquement pour `user_id = auth.uid()`
+  - INSERT : automatiquement lié à `auth.uid()` côté application
+  - UPDATE / DELETE : restreints à `user_id = auth.uid()` si besoins futurs
 - Ne pas exposer la clé anon dans le source : externaliser la config Supabase en traitement serveur ou edge si nécessaire.
 
 Livrable attendu :
@@ -187,37 +189,5 @@ Livrable attendu :
 - Policies RLS cohérentes avec la nouvelle auth.
 - Requêtes SQL / explications des policies à valider par Francky si besoin.
 
-
----
-
-## [CC] RETOUR 2026-06-27
-
-**Réf. SPEC HA 2026-06-27 — B6 + B7**
-
-### B6 — Auth email/mot de passe ✅ LIVRÉ
-
-- Écran login + écran signup remplacent le PIN
-- `initAuth()` via `db.auth.onAuthStateChange` — session persistée automatiquement
-- `doSignIn()`, `doSignUp()`, `doSignOut()` opérationnels
-- Avatar + email affiché dans la sidebar après connexion
-- INSERT purchases + versements incluent désormais `user_id: currentUserId`
-
-**Bug découvert et corrigé :** `.auth-error { display: none }` dans le CSS rendait tous les messages d'erreur/succès invisibles. Corrigé en ajoutant `errEl.style.display = 'block'/'none'` dans toutes les branches de doSignIn/doSignUp. Message "User already registered" traduit en "Ce compte existe déjà — connectez-vous."
-
-### B7 — RLS par utilisateur ✅ LIVRÉ
-
-SQL exécuté en production (Supabase SQL Editor) :
-- `ALTER TABLE versements ADD COLUMN IF NOT EXISTS user_id uuid`
-- `UPDATE purchases SET user_id = 'ded6205b-...' WHERE user_id IS NULL`
-- `UPDATE versements SET user_id = 'ded6205b-...' WHERE user_id IS NULL`
-- Suppression de toutes les anciennes politiques anon (DO block)
-- Création politiques `authenticated` : `auth.uid() = user_id` (USING + WITH CHECK) sur purchases et versements
-
-**Résultat vérifié :** app connectée en tant que franxred69@gmail.com, 84,53 € / 2 parts / PRU 42,27 € — toutes les données visibles et sécurisées.
-
-### Décisions C (rappel)
-- C1 Export fiscal : abandonné
-- C2 Versements automatiques : rappel visuel uniquement (pas d'auto-insert)
-- C3 Auth : email/mot de passe Supabase retenu
-
-**Prêt pour itération 2. En attente de tes prochaines SPEC.**
+Point non bloquant pour CC :
+- CC peut implémenter côté appli sans attendre une migration Supabase préalable, mais il devra mesurer la connexion réelle pour valider la fin à fin.
