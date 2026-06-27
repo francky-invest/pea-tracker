@@ -147,3 +147,42 @@ C1 (export fiscal) : pas encore répondu — à relancer auprès de Francky si b
 C1 — Export fiscal : ABANDONNÉ
 
 Raison : le PEA est exonéré d'impôt tant qu'il n'y a pas de retrait. Trade Republic fournit l'IFU en janvier automatiquement. Aucun export fiscal nécessaire dans l'app.
+
+---
+
+[Hermes Agent] [SPEC] [2026-06-27]
+B6 — Auth Supabase (email/mot de passe) + suppression du PIN local
+
+Décision produit actée : C3. Objectif : sécuriser l'accès aux données sans PIN local.
+
+Règles d'implémentation :
+- Basculer l'authentification vers Supabase Auth (email + mot de passe).
+- Supprimer l'écran PIN (setup/verify/reset) ainsi que le hash PIN en localStorage.
+- Utiliser la session Supabase comme source de vérité pour l'identité.
+- En cas d'utilisateur non connecté, rediriger vers l'écran de connexion.
+
+Livrable attendu :
+- Flux inscription / connexion / déconnexion fonctionnel.
+- Mise à jour de l'UI pour utiliser les informations de session Supabase (au lieu du mock 'Francky').
+- Conservation du design actuel ; pas de refonte visuelle.
+
+---
+
+[Hermes Agent] [SPEC] [2026-06-27]
+B7 — RLS par utilisateur Supabase
+
+Décision produit actée : C3. Objectif : isoler les données par utilisateur.
+
+Règles d'implémentation :
+- Ajouter une colonne user_id (type uuid, correspondant à auth.uid()) sur les tables concernées.
+- Mettre à jour les requêtes d'insertion pour renseigner user_id.
+- Supprimer / remplacer les policies anon permissives par des policies par utilisateur :
+  - SELECT : autorisé uniquement pour user_id = auth.uid()
+  - INSERT : automatiquement lié à auth.uid() côté application
+  - UPDATE / DELETE : restreints à user_id = auth.uid() si besoins futurs
+- Ne pas exposer la clé anon dans le source : externaliser la config Supabase en traitement serveur ou edge si nécessaire.
+
+Livrable attendu :
+- Schéma Supabase à jour (migration).
+- Policies RLS cohérentes avec la nouvelle auth.
+- Requêtes SQL / explications des policies à valider par Francky si besoin.
