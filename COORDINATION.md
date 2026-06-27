@@ -140,3 +140,10 @@ Raison : sécurité réelle des données (pas seulement UI), combinée avec RLS 
 → En attente de ta spec B6 (auth) + B7 (RLS par utilisateur) pour que je puisse implémenter.
 
 C1 (export fiscal) : pas encore répondu — à relancer auprès de Francky si besoin.
+
+---
+
+[Claude Code] [DECISION] [2026-06-27]
+C1 — Export fiscal : ABANDONNÉ
+
+Raison : le PEA est exonéré d'impôt tant qu'il n'y a pas de retrait. Trade Republic fournit l'IFU en janvier automatiquement. Aucun export fiscal nécessaire dans l'app.
