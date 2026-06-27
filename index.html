@@ -206,35 +206,45 @@
       <div class="auth-logo-text">PEA <span>Francky</span></div>
     </div>
 
-    <!-- Création du PIN (premier lancement) -->
-    <div id="pin-setup" style="display:none;">
-      <div class="auth-title">Créer votre code PIN</div>
-      <div class="auth-sub">Choisissez un code à 4–8 chiffres pour déverrouiller l'app</div>
-      <div id="pinSetupError" class="auth-error"></div>
+    <!-- Connexion -->
+    <div id="auth-login">
+      <div class="auth-title">Connexion</div>
+      <div class="auth-sub">Accédez à votre suivi PEA</div>
+      <div id="loginError" class="auth-error"></div>
       <div class="field">
-        <label>Nouveau PIN</label>
-        <input type="password" id="pinNew" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="new-password">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="votre@email.com" autocomplete="email"
+               onkeydown="if(event.key==='Enter')doSignIn()">
       </div>
       <div class="field">
-        <label>Confirmer le PIN</label>
-        <input type="password" id="pinConfirm" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="new-password"
-               onkeydown="if(event.key==='Enter')doSetPin()">
+        <label>Mot de passe</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password"
+               onkeydown="if(event.key==='Enter')doSignIn()">
       </div>
-      <button class="btn-primary" id="btnSetPin" type="button" onclick="doSetPin()">Créer le PIN</button>
+      <button class="btn-primary" id="btnSignIn" type="button" onclick="doSignIn()">Se connecter</button>
+      <button class="btn-secondary" type="button" onclick="showSignUp()" style="margin-top:10px;width:100%;padding:10px;background:transparent;border:1px solid var(--border);color:var(--text-sub);border-radius:var(--radius);cursor:pointer;font-size:13px;">Créer un compte</button>
     </div>
 
-    <!-- Saisie du PIN (connexion normale) -->
-    <div id="pin-verify" style="display:none;">
-      <div class="auth-title">Bienvenue</div>
-      <div class="auth-sub">Entrez votre code PIN pour accéder à l'app</div>
-      <div id="pinVerifyError" class="auth-error"></div>
+    <!-- Inscription -->
+    <div id="auth-signup" style="display:none;">
+      <div class="auth-title">Créer un compte</div>
+      <div class="auth-sub">Première connexion à PEA Francky</div>
+      <div id="signupError" class="auth-error"></div>
       <div class="field">
-        <label>Code PIN</label>
-        <input type="password" id="pinInput" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="current-password"
-               onkeydown="if(event.key==='Enter')doVerifyPin()">
+        <label>Email</label>
+        <input type="email" id="signupEmail" placeholder="votre@email.com" autocomplete="email">
       </div>
-      <button class="btn-primary" id="btnVerify" type="button" onclick="doVerifyPin()">Déverrouiller</button>
-      <button class="btn-secondary" type="button" onclick="doResetPin()" style="margin-top:10px;width:100%;padding:10px;background:transparent;border:1px solid var(--border);color:var(--text-sub);border-radius:var(--radius);cursor:pointer;font-size:13px;">PIN oublié — réinitialiser</button>
+      <div class="field">
+        <label>Mot de passe</label>
+        <input type="password" id="signupPassword" placeholder="8 caractères minimum" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label>Confirmer le mot de passe</label>
+        <input type="password" id="signupPasswordConfirm" placeholder="••••••••" autocomplete="new-password"
+               onkeydown="if(event.key==='Enter')doSignUp()">
+      </div>
+      <button class="btn-primary" id="btnSignUp" type="button" onclick="doSignUp()">Créer mon compte</button>
+      <button class="btn-secondary" type="button" onclick="showLogin()" style="margin-top:10px;width:100%;padding:10px;background:transparent;border:1px solid var(--border);color:var(--text-sub);border-radius:var(--radius);cursor:pointer;font-size:13px;">Retour à la connexion</button>
     </div>
   </div>
 </div>
@@ -265,7 +275,7 @@
         <div class="user-chip">
           <div class="user-avatar" id="userAvatar">F</div>
           <div class="user-email" id="userEmail">—</div>
-          <button class="btn-logout" onclick="doLogout()" title="Déconnexion">⏻</button>
+          <button class="btn-logout" onclick="doSignOut()" title="Déconnexion">⏻</button>
         </div>
       </div>
     </aside>
@@ -578,77 +588,74 @@ let chartEvol = null;
 let chartSim  = null;
 let cachedLivePrice = null;
 
-// PIN AUTH
-const PABZ_PIN_KEY = 'pabz_pin_hash';
-async function sha256(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+// SUPABASE AUTH
+let currentUserId = null;
+
+function showLogin() {
+  document.getElementById('auth-login').style.display = 'block';
+  document.getElementById('auth-signup').style.display = 'none';
+  setTimeout(() => { const el = document.getElementById('loginEmail'); if (el) el.focus(); }, 150);
 }
-async function initPin() {
-  const stored = localStorage.getItem(PABZ_PIN_KEY);
-  document.getElementById('auth-screen').style.display = 'flex';
-  document.getElementById('app').style.display = 'none';
-  if (!stored) {
-    document.getElementById('pin-setup').style.display = 'block';
-    document.getElementById('pin-verify').style.display = 'none';
-    setTimeout(() => { const el = document.getElementById('pinNew'); if(el) el.focus(); }, 150);
-  } else {
-    document.getElementById('pin-setup').style.display = 'none';
-    document.getElementById('pin-verify').style.display = 'block';
-    setTimeout(() => { const el = document.getElementById('pinInput'); if(el) el.focus(); }, 150);
-  }
+function showSignUp() {
+  document.getElementById('auth-login').style.display = 'none';
+  document.getElementById('auth-signup').style.display = 'block';
+  setTimeout(() => { const el = document.getElementById('signupEmail'); if (el) el.focus(); }, 150);
 }
-async function doSetPin() {
-  const p1 = document.getElementById('pinNew').value;
-  const p2 = document.getElementById('pinConfirm').value;
-  const err = document.getElementById('pinSetupError');
-  const btn = document.getElementById('btnSetPin');
-  err.style.display = 'none';
-  if (!p1 || p1.length < 4) { err.textContent = 'Le PIN doit faire au moins 4 chiffres.'; err.style.display='block'; return; }
-  if (p1 !== p2) { err.textContent = 'Les deux codes PIN ne correspondent pas.'; err.style.display='block'; return; }
+async function doSignIn() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('btnSignIn');
+  errEl.textContent = '';
+  if (!email || !password) { errEl.textContent = 'Email et mot de passe requis.'; return; }
   btn.disabled = true; btn.textContent = '…';
-  const hash = await sha256(p1);
-  localStorage.setItem(PABZ_PIN_KEY, hash);
-  showApp();
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = 'Se connecter';
+  if (error) errEl.textContent = error.message;
 }
-async function doVerifyPin() {
-  const pin = document.getElementById('pinInput').value;
-  const err = document.getElementById('pinVerifyError');
-  const btn = document.getElementById('btnVerify');
-  err.style.display = 'none';
-  if (!pin) { err.textContent = 'Entrez votre code PIN.'; err.style.display='block'; return; }
+async function doSignUp() {
+  const email = document.getElementById('signupEmail').value.trim();
+  const password = document.getElementById('signupPassword').value;
+  const confirm = document.getElementById('signupPasswordConfirm').value;
+  const errEl = document.getElementById('signupError');
+  const btn = document.getElementById('btnSignUp');
+  errEl.textContent = '';
+  if (!email || !password) { errEl.textContent = 'Email et mot de passe requis.'; return; }
+  if (password.length < 8) { errEl.textContent = 'Mot de passe : 8 caractères minimum.'; return; }
+  if (password !== confirm) { errEl.textContent = 'Les mots de passe ne correspondent pas.'; return; }
   btn.disabled = true; btn.textContent = '…';
-  const hash = await sha256(pin);
-  const stored = localStorage.getItem(PABZ_PIN_KEY);
-  if (hash === stored) {
-    showApp();
-  } else {
-    err.textContent = 'Code PIN incorrect.';
-    err.style.display = 'block';
-    btn.disabled = false; btn.textContent = 'Déverrouiller';
-    document.getElementById('pinInput').value = '';
-    document.getElementById('pinInput').focus();
-  }
+  const { error } = await db.auth.signUp({ email, password });
+  btn.disabled = false; btn.textContent = 'Créer mon compte';
+  if (error) { errEl.textContent = error.message; return; }
+  errEl.style.color = 'var(--green)';
+  errEl.textContent = 'Compte créé ! Connectez-vous directement.';
+  setTimeout(() => { showLogin(); document.getElementById('loginEmail').value = email; }, 1800);
 }
-function doResetPin() {
-  if (!confirm('Réinitialiser le PIN ? Vous devrez en créer un nouveau.')) return;
-  localStorage.removeItem(PABZ_PIN_KEY);
-  initPin();
+async function doSignOut() {
+  await db.auth.signOut();
 }
-function doLogout() {
-  document.getElementById('auth-screen').style.display = 'flex';
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('pin-setup').style.display = 'none';
-  document.getElementById('pin-verify').style.display = 'block';
-  document.getElementById('pinInput').value = '';
-  setTimeout(() => document.getElementById('pinInput').focus(), 150);
+function initAuth() {
+  db.auth.onAuthStateChange((_event, session) => {
+    if (session) {
+      currentUserId = session.user.id;
+      const email = session.user.email;
+      document.getElementById('userAvatar').textContent = email.charAt(0).toUpperCase();
+      document.getElementById('userEmail').textContent = email;
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      showApp();
+    } else {
+      currentUserId = null;
+      document.getElementById('auth-screen').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+      showLogin();
+    }
+  });
 }
 
 function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  document.getElementById('userEmail').textContent = 'Francky';
-  document.getElementById('userAvatar').textContent = 'F';
   const now = new Date();
   document.getElementById('dashDate').textContent =
     now.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
@@ -798,7 +805,7 @@ async function addPurchase() {
   btn.disabled = true; btn.textContent = '…';
   const account = document.getElementById('fAccount').value || 'PEA';
   const { error } = await db.from('purchases').insert([{
-    date, etf: 'EPAB', amount, shares, note, account
+    date, etf: 'EPAB', amount, shares, note, account, user_id: currentUserId
   }]);
   btn.disabled = false; btn.textContent = '+ Ajouter';
   if (error) { showToast("Erreur lors de l'ajout.", 'error'); console.error(error); }
@@ -900,7 +907,7 @@ async function addVersement() {
   if (isNaN(amount) || amount <= 0) { setFieldError('vAmount', 'Montant invalide'); hasError = true; }
   if (hasError) { showToast('Veuillez corriger les champs en rouge.', 'error'); return; }
   btn.disabled = true; btn.textContent = '…';
-  const { error } = await db.from('versements').insert([{ date, amount, source: 'LCL' }]);
+  const { error } = await db.from('versements').insert([{ date, amount, source: 'LCL', user_id: currentUserId }]);
   btn.disabled = false; btn.textContent = '+ Versement';
   if (error) { showToast('Erreur : ' + error.message, 'error'); console.error(error); }
   else {
@@ -1185,7 +1192,7 @@ function clearFieldErrors(...ids) {
     if (err) err.remove();
   });
 }
-initPin();
+initAuth();
 </script>
 </body>
 </html>
