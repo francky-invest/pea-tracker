@@ -290,7 +290,7 @@
               <div class="kpi-sub">Opérations EPAB</div>
             </div>
             <div class="kpi-card">
-              <div class="kpi-label">Parts achetées</div>
+              <div class="kpi-label">Nb total de parts</div>
               <div class="kpi-value" id="kpiShares">—</div>
               <div class="kpi-sub">Unités EPAB.PA</div>
             </div>
@@ -353,10 +353,6 @@
               <div class="tirelire-kpi">
                 <div class="tirelire-kpi-label">Cours EPAB</div>
                 <div class="tirelire-kpi-value" id="tirelireCours">—</div>
-              </div>
-              <div class="tirelire-kpi">
-                <div class="tirelire-kpi-label">Progression</div>
-                <div class="tirelire-kpi-value" id="tirelireProgress" style="color:var(--accent);">—</div>
               </div>
               <div class="tirelire-kpi" style="border-color:rgba(34,197,94,.25);">
                 <div class="tirelire-kpi-label">Intérêts /mois</div>
@@ -558,6 +554,17 @@
   </div>
 </nav>
 
+<!-- DETAIL ACHAT MODAL -->
+<div id="purchaseDetailOverlay" onclick="if(event.target===this)closePurchaseDetail()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:16px;padding:28px;min-width:300px;max-width:420px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.4);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <span style="font-size:16px;font-weight:700;">Détail achat</span>
+      <button onclick="closePurchaseDetail()" style="background:none;border:none;color:var(--text-sub);font-size:22px;cursor:pointer;padding:0;line-height:1;">×</button>
+    </div>
+    <div id="purchaseDetailBody"></div>
+  </div>
+</div>
+
 <script>
 const SUPABASE_URL      = 'https://xzbhwitgutkwaomjuzcz.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6Ymh3aXRndXRrd2FvbWp1emN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDgzNzYsImV4cCI6MjA5NDYyNDM3Nn0.zoUMKjYCRAVgzuEscnhHvzdTbCV8x8ronvERq94tx_A';
@@ -690,7 +697,7 @@ function renderDashboard() {
   const avg    = shares > 0 ? total / shares : 0;
   document.getElementById('kpiTotal').textContent  = fmt(total) + ' €';
   document.getElementById('kpiCount').textContent  = count;
-  document.getElementById('kpiShares').textContent = shares > 0 ? shares.toFixed(4) : '—';
+  document.getElementById('kpiShares').textContent = shares > 0 ? (shares % 1 === 0 ? shares + ' parts' : shares.toFixed(4) + ' parts') : '—';
   document.getElementById('kpiAvg').textContent    = avg > 0 ? fmt(avg) + ' €' : '—';
   updateDashboardLiveKpis(shares, total);
   renderEvolutionChart();
@@ -756,7 +763,7 @@ function renderRecent() {
   const recent = allPurchases.slice(0, 5);
   if (!recent.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>Aucun achat enregistré</div>'; return; }
   el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>ETF</th><th>Montant</th><th>Parts</th><th>Compte</th></tr></thead><tbody>' +
-    recent.map(p => '<tr><td>' + fmtDate(p.date) + '</td><td><span class="badge badge-blue">EPAB.PA</span></td><td><strong>' + fmt(p.amount) + ' €</strong></td><td>' + (p.shares ? p.shares.toFixed(4) : '—') + '</td><td>' + (p.account === 'CTO' ? '<span class="badge badge-orange">CTO</span>' : '<span class="badge badge-green">PEA</span>') + '</td></tr>').join('') +
+    recent.map(p => '<tr onclick="showPurchaseDetail(\'' + p.id + '\')" style="cursor:pointer"><td>' + fmtDate(p.date) + '</td><td><span class="badge badge-blue">EPAB.PA</span></td><td><strong>' + fmt(p.amount) + ' €</strong></td><td>' + (p.shares ? p.shares.toFixed(4) : '—') + '</td><td>' + (p.account === 'CTO' ? '<span class="badge badge-orange">CTO</span>' : '<span class="badge badge-green">PEA</span>') + '</td></tr>').join('') +
     '</tbody></table></div>';
 }
 
@@ -770,7 +777,7 @@ function renderPurchasesTable() {
   }
   const totalInvested = allPurchases.reduce((s, p) => s + (p.amount || 0), 0);
   const rows = [...allPurchases].sort((a, b) => b.date.localeCompare(a.date)).map(p =>
-    '<tr><td>' + fmtDate(p.date) + '</td><td><span class="badge badge-blue">EPAB.PA</span></td><td><strong>' + fmt(p.amount) + ' €</strong></td><td>' + (p.shares ? p.shares.toFixed(4) : '—') + '</td><td>' + (p.account === 'CTO' ? '<span class="badge badge-orange">CTO</span>' : '<span class="badge badge-green">PEA</span>') + '</td><td style="color:var(--text-sub);font-size:12px;">' + (p.note || '') + '</td><td><button class="btn-icon" onclick="deletePurchase(\'' + p.id + '\')" title="Supprimer">🗑</button></td></tr>'
+    '<tr><td>' + fmtDate(p.date) + '</td><td><span class="badge badge-blue">EPAB.PA</span></td><td><strong>' + fmt(p.amount) + ' €</strong></td><td>' + (p.shares ? p.shares.toFixed(4) : '—') + '</td><td>' + (p.account === 'CTO' ? '<span class="badge badge-orange">CTO</span>' : '<span class="badge badge-green">PEA</span>') + '</td><td style="color:var(--text-sub);font-size:12px;">' + (p.note || '') + '</td><td><button class="btn-icon" onclick="event.stopPropagation();deletePurchase(\'' + p.id + '\')" title="Supprimer">🗑</button></td></tr>'
   ).join('');
   el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>ETF</th><th>Montant</th><th>Parts</th><th>Compte</th><th>Note</th><th></th></tr></thead><tbody>' + rows + '</tbody></table><div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:24px;font-size:13px;color:var(--text-sub);"><span>Total investi : <strong style="color:var(--text);">' + fmt(totalInvested) + ' €</strong></span><span>Nb d\'achats : <strong style="color:var(--text);">' + allPurchases.length + '</strong></span></div></div>';
   updateTirelireCard();
@@ -783,9 +790,11 @@ async function addPurchase() {
   const shares = parseFloat(document.getElementById('fShares').value) || null;
   const note   = document.getElementById('fNote').value.trim() || null;
   const btn    = document.getElementById('btnAdd');
-  if (!date || isNaN(amount) || amount <= 0) {
-    showToast('Veuillez renseigner la date et le montant.', 'error'); return;
-  }
+  clearFieldErrors('fDate', 'fAmount');
+  let hasError = false;
+  if (!date) { setFieldError('fDate', 'Date requise'); hasError = true; }
+  if (isNaN(amount) || amount <= 0) { setFieldError('fAmount', 'Montant invalide'); hasError = true; }
+  if (hasError) { showToast('Veuillez corriger les champs en rouge.', 'error'); return; }
   btn.disabled = true; btn.textContent = '…';
   const account = document.getElementById('fAccount').value || 'PEA';
   const { error } = await db.from('purchases').insert([{
@@ -885,7 +894,11 @@ async function addVersement() {
   const date   = document.getElementById('vDate').value;
   const amount = parseFloat(document.getElementById('vAmount').value);
   const btn    = document.getElementById('btnVersement');
-  if (!date || isNaN(amount) || amount <= 0) { showToast('Date et montant requis.', 'error'); return; }
+  clearFieldErrors('vDate', 'vAmount');
+  let hasError = false;
+  if (!date) { setFieldError('vDate', 'Date requise'); hasError = true; }
+  if (isNaN(amount) || amount <= 0) { setFieldError('vAmount', 'Montant invalide'); hasError = true; }
+  if (hasError) { showToast('Veuillez corriger les champs en rouge.', 'error'); return; }
   btn.disabled = true; btn.textContent = '…';
   const { error } = await db.from('versements').insert([{ date, amount, source: 'LCL' }]);
   btn.disabled = false; btn.textContent = '+ Versement';
@@ -1136,6 +1149,42 @@ function showToast(msg, type) {
   toastTimer = setTimeout(() => { el.className = ''; }, 3200);
 }
 
+function showPurchaseDetail(id) {
+  const p = allPurchases.find(x => x.id === id);
+  if (!p) return;
+  const pru = (p.amount && p.shares) ? (p.amount / p.shares).toFixed(2) : null;
+  document.getElementById('purchaseDetailBody').innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:14px;font-size:14px;">' +
+    '<div style="display:flex;justify-content:space-between;"><span style="color:var(--text-sub);">Date</span><strong>' + fmtDate(p.date) + '</strong></div>' +
+    '<div style="display:flex;justify-content:space-between;"><span style="color:var(--text-sub);">ETF</span><span class="badge badge-blue">EPAB.PA</span></div>' +
+    '<div style="display:flex;justify-content:space-between;"><span style="color:var(--text-sub);">Montant</span><strong>' + fmt(p.amount) + ' €</strong></div>' +
+    '<div style="display:flex;justify-content:space-between;"><span style="color:var(--text-sub);">Parts</span><strong>' + (p.shares ? p.shares.toFixed(4) : '—') + '</strong></div>' +
+    '<div style="display:flex;justify-content:space-between;"><span style="color:var(--text-sub);">PRU constaté</span><strong>' + (pru ? pru + ' €' : '—') + '</strong></div>' +
+    '<div style="display:flex;justify-content:space-between;"><span style="color:var(--text-sub);">Compte</span>' + (p.account === 'CTO' ? '<span class="badge badge-orange">CTO</span>' : '<span class="badge badge-green">PEA</span>') + '</div>' +
+    (p.note ? '<div style="display:flex;justify-content:space-between;gap:12px;"><span style="color:var(--text-sub);">Note</span><span style="text-align:right;">' + p.note + '</span></div>' : '') +
+    '</div>';
+  document.getElementById('purchaseDetailOverlay').style.display = 'flex';
+}
+function closePurchaseDetail() {
+  document.getElementById('purchaseDetailOverlay').style.display = 'none';
+}
+function setFieldError(fieldId, msg) {
+  const el = document.getElementById(fieldId);
+  if (!el) return;
+  el.style.outline = '2px solid var(--red)';
+  let err = el.parentNode.querySelector('.field-err');
+  if (!err) { err = document.createElement('div'); err.className = 'field-err'; err.style.cssText = 'color:var(--red);font-size:11px;margin-top:4px;'; el.parentNode.appendChild(err); }
+  err.textContent = msg;
+}
+function clearFieldErrors(...ids) {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.outline = '';
+    const err = el.parentNode.querySelector('.field-err');
+    if (err) err.remove();
+  });
+}
 initPin();
 </script>
 </body>
