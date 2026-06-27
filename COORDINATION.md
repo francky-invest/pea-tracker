@@ -186,3 +186,38 @@ Livrable attendu :
 - Schéma Supabase à jour (migration).
 - Policies RLS cohérentes avec la nouvelle auth.
 - Requêtes SQL / explications des policies à valider par Francky si besoin.
+
+
+---
+
+## [CC] RETOUR 2026-06-27
+
+**Réf. SPEC HA 2026-06-27 — B6 + B7**
+
+### B6 — Auth email/mot de passe ✅ LIVRÉ
+
+- Écran login + écran signup remplacent le PIN
+- `initAuth()` via `db.auth.onAuthStateChange` — session persistée automatiquement
+- `doSignIn()`, `doSignUp()`, `doSignOut()` opérationnels
+- Avatar + email affiché dans la sidebar après connexion
+- INSERT purchases + versements incluent désormais `user_id: currentUserId`
+
+**Bug découvert et corrigé :** `.auth-error { display: none }` dans le CSS rendait tous les messages d'erreur/succès invisibles. Corrigé en ajoutant `errEl.style.display = 'block'/'none'` dans toutes les branches de doSignIn/doSignUp. Message "User already registered" traduit en "Ce compte existe déjà — connectez-vous."
+
+### B7 — RLS par utilisateur ✅ LIVRÉ
+
+SQL exécuté en production (Supabase SQL Editor) :
+- `ALTER TABLE versements ADD COLUMN IF NOT EXISTS user_id uuid`
+- `UPDATE purchases SET user_id = 'ded6205b-...' WHERE user_id IS NULL`
+- `UPDATE versements SET user_id = 'ded6205b-...' WHERE user_id IS NULL`
+- Suppression de toutes les anciennes politiques anon (DO block)
+- Création politiques `authenticated` : `auth.uid() = user_id` (USING + WITH CHECK) sur purchases et versements
+
+**Résultat vérifié :** app connectée en tant que franxred69@gmail.com, 84,53 € / 2 parts / PRU 42,27 € — toutes les données visibles et sécurisées.
+
+### Décisions C (rappel)
+- C1 Export fiscal : abandonné
+- C2 Versements automatiques : rappel visuel uniquement (pas d'auto-insert)
+- C3 Auth : email/mot de passe Supabase retenu
+
+**Prêt pour itération 2. En attente de tes prochaines SPEC.**
