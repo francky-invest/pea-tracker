@@ -754,7 +754,7 @@ function renderEvolutionChart() {
   chartEvol = new Chart(ctx, {
     type: 'line',
     data: { labels, datasets: [{ label: 'Total investi (€)', data: values, borderColor: '#4d7cfe',
-      backgroundColor: gradient, fill: true, tension: .35,
+      backgroundColor: gradient, fill: true, tension: 0, stepped: true,
       pointRadius: values.length < 20 ? 4 : 0, pointBackgroundColor: '#4d7cfe', borderWidth: 2 }] },
     options: { responsive: true,
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmt(c.parsed.y) + ' €' } } },
