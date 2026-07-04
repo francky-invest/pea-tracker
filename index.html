@@ -323,8 +323,8 @@
           <div class="card">
             <div class="card-header">
               <div>
-                <div class="card-title">Évolution des investissements</div>
-                <div class="card-sub">Montant cumulé dans le temps</div>
+                <div class="card-title">Gain / Perte dans le temps</div>
+                <div class="card-sub">Valorisation réelle vs. montant investi</div>
               </div>
             </div>
             <canvas id="chartEvolution" height="120"></canvas>
@@ -742,22 +742,64 @@ function updateDashboardLiveKpis(shares, total) {
   if (valCard) valCard.style.borderColor = pnl >= 0 ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.15)';
 }
 
-function renderEvolutionChart() {
+async function renderEvolutionChart() {
   const sorted = [...allPurchases].sort((a, b) => a.date.localeCompare(b.date));
-  const labels = []; const values = []; let cum = 0;
-  sorted.forEach(p => { cum += p.amount || 0; labels.push(p.date); values.push(cum); });
+  if (!sorted.length) { if (chartEvol) chartEvol.destroy(); return; }
+
+  let priceByDate = {};
+  try {
+    const url = 'https://corsproxy.io/?' + encodeURIComponent(
+      'https://query1.finance.yahoo.com/v8/finance/chart/EPAB.PA?interval=1d&range=2y&includePrePost=false'
+    );
+    const json = await (await fetch(url, { signal: AbortSignal.timeout(7000) })).json();
+    const result = json.chart.result[0];
+    const timestamps = result.timestamp || [];
+    const closes = result.indicators.quote[0].close || [];
+    timestamps.forEach((t, i) => {
+      if (closes[i] != null) {
+        const d = new Date(t * 1000).toISOString().split('T')[0];
+        priceByDate[d] = closes[i];
+      }
+    });
+  } catch (e) { console.error('Historique prix indisponible :', e); }
+
+  const sortedDates = Object.keys(priceByDate).sort();
+  function priceOnOrBefore(dateStr) {
+    let last = null;
+    for (const d of sortedDates) { if (d > dateStr) break; last = priceByDate[d]; }
+    return last;
+  }
+
+  const labels = []; const gains = []; let cumInvested = 0; let cumShares = 0;
+  sorted.forEach(p => {
+    cumInvested += p.amount || 0;
+    cumShares += p.shares || 0;
+    const price = priceOnOrBefore(p.date) || (p.shares ? (p.amount / p.shares) : 0);
+    labels.push(p.date);
+    gains.push(+((cumShares * price) - cumInvested).toFixed(2));
+  });
+  if (cachedLivePrice) {
+    const today = new Date().toISOString().split('T')[0];
+    if (labels[labels.length - 1] !== today) {
+      labels.push(today);
+      gains.push(+((cumShares * cachedLivePrice) - cumInvested).toFixed(2));
+    }
+  }
+
   if (chartEvol) chartEvol.destroy();
   const ctx = document.getElementById('chartEvolution').getContext('2d');
+  const isUp = gains.length ? gains[gains.length - 1] >= 0 : true;
+  const lineColor = isUp ? '#22c55e' : '#ef4444';
   const gradient = ctx.createLinearGradient(0, 0, 0, 220);
-  gradient.addColorStop(0, 'rgba(77,124,254,.35)');
-  gradient.addColorStop(1, 'rgba(77,124,254,.0)');
+  gradient.addColorStop(0, isUp ? 'rgba(34,197,94,.35)' : 'rgba(239,68,68,.35)');
+  gradient.addColorStop(1, isUp ? 'rgba(34,197,94,0)' : 'rgba(239,68,68,0)');
   chartEvol = new Chart(ctx, {
     type: 'line',
-    data: { labels, datasets: [{ label: 'Total investi (€)', data: values, borderColor: '#4d7cfe',
+    data: { labels, datasets: [{ label: 'Gain / Perte (€)', data: gains, borderColor: lineColor,
       backgroundColor: gradient, fill: true, tension: 0, stepped: true,
-      pointRadius: values.length < 20 ? 4 : 0, pointBackgroundColor: '#4d7cfe', borderWidth: 2 }] },
+      pointRadius: gains.length < 20 ? 4 : 0, pointBackgroundColor: lineColor, borderWidth: 2 }] },
     options: { responsive: true,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmt(c.parsed.y) + ' €' } } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + (c.parsed.y >= 0 ? '+' : '') + fmt(c.parsed.y) + ' €' } } },
       scales: {
         x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#5b6488', maxTicksLimit: 8 } },
         y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#5b6488', callback: v => fmt(v) + ' €' } }
