@@ -763,27 +763,29 @@ async function renderEvolutionChart() {
     });
   } catch (e) { console.error('Historique prix indisponible :', e); }
 
-  const sortedDates = Object.keys(priceByDate).sort();
-  function priceOnOrBefore(dateStr) {
-    let last = null;
-    for (const d of sortedDates) { if (d > dateStr) break; last = priceByDate[d]; }
-    return last;
-  }
+  const firstDate = sorted[0].date;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const tradingDays = Object.keys(priceByDate).filter(d => d >= firstDate && d <= todayStr).sort();
 
-  const labels = []; const gains = []; let cumInvested = 0; let cumShares = 0;
-  sorted.forEach(p => {
-    cumInvested += p.amount || 0;
-    cumShares += p.shares || 0;
-    const price = priceOnOrBefore(p.date) || (p.shares ? (p.amount / p.shares) : 0);
-    labels.push(p.date);
-    gains.push(+((cumShares * price) - cumInvested).toFixed(2));
-  });
-  if (cachedLivePrice) {
-    const today = new Date().toISOString().split('T')[0];
-    if (labels[labels.length - 1] !== today) {
-      labels.push(today);
-      gains.push(+((cumShares * cachedLivePrice) - cumInvested).toFixed(2));
+  const labels = []; const gains = [];
+  let pi = 0, cumInvested = 0, cumShares = 0;
+  tradingDays.forEach(d => {
+    while (pi < sorted.length && sorted[pi].date <= d) {
+      cumInvested += sorted[pi].amount || 0;
+      cumShares += sorted[pi].shares || 0;
+      pi++;
     }
+    labels.push(d);
+    gains.push(+((cumShares * priceByDate[d]) - cumInvested).toFixed(2));
+  });
+  if (cachedLivePrice && labels[labels.length - 1] !== todayStr) {
+    while (pi < sorted.length) { cumInvested += sorted[pi].amount || 0; cumShares += sorted[pi].shares || 0; pi++; }
+    labels.push(todayStr);
+    gains.push(+((cumShares * cachedLivePrice) - cumInvested).toFixed(2));
+  }
+  if (!labels.length) {
+    let ci = 0, cs = 0;
+    sorted.forEach(p => { ci += p.amount || 0; cs += p.shares || 0; labels.push(p.date); gains.push(0); });
   }
 
   if (chartEvol) chartEvol.destroy();
@@ -796,9 +798,10 @@ async function renderEvolutionChart() {
   chartEvol = new Chart(ctx, {
     type: 'line',
     data: { labels, datasets: [{ label: 'Gain / Perte (€)', data: gains, borderColor: lineColor,
-      backgroundColor: gradient, fill: true, tension: 0, stepped: true,
-      pointRadius: gains.length < 20 ? 4 : 0, pointBackgroundColor: lineColor, borderWidth: 2 }] },
+      backgroundColor: gradient, fill: true, tension: .25,
+      pointRadius: 0, borderWidth: 2 }] },
     options: { responsive: true,
+      interaction: { intersect: false, mode: 'index' },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + (c.parsed.y >= 0 ? '+' : '') + fmt(c.parsed.y) + ' €' } } },
       scales: {
         x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#5b6488', maxTicksLimit: 8 } },
