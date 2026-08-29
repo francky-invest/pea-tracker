@@ -179,6 +179,7 @@
     .ledger-label { font-size: 10px; }
     .ledger-delta { font-size: 11px; margin-top: 6px; }
     .ledger-stats { gap: 10px; flex-wrap: nowrap; }
+    .hide-mobile { display: none; }
     .stat-value { font-size: 12.5px; }
     .stat-label { font-size: 9px; white-space: nowrap; }
     .grid-2 { grid-template-columns: 1fr; gap: 28px; }
@@ -298,8 +299,8 @@
             </div>
             <div class="ledger-stats">
               <div><div class="stat-label">Investi</div><div class="stat-value" id="kpiTotal">—</div></div>
-              <div><div class="stat-label">Parts EPAB</div><div class="stat-value" id="kpiShares">—</div></div>
-              <div><div class="stat-label">Cours live</div><div class="stat-value" id="kpiLivePrice">—</div></div>
+              <div><div class="stat-label">Parts</div><div class="stat-value" id="kpiShares">—</div></div>
+              <div><div class="stat-label">Cours</div><div class="stat-value" id="kpiLivePrice">—</div></div>
             </div>
           </div>
 
@@ -344,8 +345,8 @@
               <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
                 <span class="badge" id="tirelireBadge" style="margin-bottom:8px;">—</span>
                 <div class="ledger-stats" style="flex:none;">
-                  <div><div class="stat-label">Cours EPAB</div><div class="stat-value" id="tirelireCours">—</div></div>
-                  <div><div class="stat-label">Intérêts / mois (est.)</div><div class="stat-value" id="tirelireInterets">—</div></div>
+                  <div><div class="stat-label">Cours</div><div class="stat-value" id="tirelireCours">—</div></div>
+                  <div><div class="stat-label">Intérêts</div><div class="stat-value" id="tirelireInterets">—</div></div>
                 </div>
               </div>
             </div>
@@ -457,7 +458,7 @@
               <div><div class="stat-label">PRU PEA</div><div class="stat-value" id="etfPruPea">—</div></div>
               <div><div class="stat-label">PRU CTO</div><div class="stat-value" id="etfPruCto">—</div></div>
               <div><div class="stat-label">TER</div><div class="stat-value">0,20&nbsp;%</div></div>
-              <div><div class="stat-label">Marché</div><div class="stat-value muted">Euronext Paris</div></div>
+              <div class="hide-mobile"><div class="stat-label">Marché</div><div class="stat-value muted">Euronext Paris</div></div>
             </div>
           </div>
 
