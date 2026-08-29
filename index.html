@@ -172,8 +172,8 @@
     .page-header { padding: 20px 18px 0; }
     .page-title { font-size: 21px; }
     .page-body { padding: 18px 18px 24px; width: 100%; max-width: 100%; box-sizing: border-box; }
-    .ledger { flex-direction: column; }
-    .ledger-main { padding-right: 0; margin-right: 0; padding-bottom: 20px; margin-bottom: 20px; border-right: none; border-bottom: 1px solid var(--border); width: 100%; }
+    
+    .ledger-main { padding-bottom: 12px; }
     .ledger-stats { flex-wrap: wrap; gap: 20px; }
     .grid-2 { grid-template-columns: 1fr; gap: 28px; }
     .card { padding: 16px; margin-bottom: 14px; box-sizing: border-box; }
@@ -703,18 +703,19 @@ function renderEvolutionChart() {
   const sorted = [...allPurchases].sort((a, b) => a.date.localeCompare(b.date));
   if (!sorted.length) { if (chartEvol) chartEvol.destroy(); return; }
 
-  const labels = []; const gains = [];
+  const labels = []; const gains = []; const rawDates = [];
   let cumInvested = 0, cumShares = 0;
   sorted.forEach(p => {
     cumInvested += p.amount || 0;
     cumShares += p.shares || 0;
-    labels.push(p.date);
+    rawDates.push(p.date);
+    labels.push(fmtDate(p.date));
     gains.push(0);
   });
 
   const todayStr = new Date().toISOString().split('T')[0];
-  if (cachedLivePrice && labels[labels.length - 1] !== todayStr) {
-    labels.push(todayStr);
+  if (cachedLivePrice && rawDates[rawDates.length - 1] !== todayStr) {
+    labels.push(fmtDate(todayStr));
     gains.push(+((cumShares * cachedLivePrice) - cumInvested).toFixed(2));
   }
 
@@ -734,8 +735,8 @@ function renderEvolutionChart() {
       interaction: { intersect: false, mode: 'index' },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + (c.parsed.y >= 0 ? '+' : '') + fmt(c.parsed.y) + ' €' } } },
       scales: {
-        x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#93908a', maxTicksLimit: 8 } },
-        y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#93908a', callback: v => fmt(v) + ' €' } }
+        x: { grid: { display: false }, ticks: { color: '#93908a', font: { size: 13 }, maxTicksLimit: 6 } },
+        y: { grid: { color: 'rgba(255,255,255,.06)' }, ticks: { color: '#93908a', font: { size: 13 }, callback: v => fmt(v) + ' €' } }
       }
     }
   });
