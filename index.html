@@ -740,8 +740,8 @@ function renderEvolutionChart() {
       interaction: { intersect: false, mode: 'index' },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + (c.parsed.y >= 0 ? '+' : '') + fmt(c.parsed.y) + ' €' } } },
       scales: {
-        x: { grid: { display: false }, ticks: { color: '#93908a', font: { size: 13 }, maxTicksLimit: 6 } },
-        y: { grid: { color: 'rgba(255,255,255,.06)' }, ticks: { color: '#93908a', font: { size: 13 }, callback: v => fmt(v) + ' €' } }
+        x: { grid: { display: false }, ticks: { color: '#93908a', font: { size: 13, family: 'IBM Plex Mono' }, maxTicksLimit: 5 } },
+        y: { grid: { color: 'rgba(255,255,255,.06)' }, ticks: { color: '#93908a', font: { size: 13, family: 'IBM Plex Mono' }, maxTicksLimit: 3, callback: v => fmt(v) + ' €' } }
       }
     }
   });
@@ -963,8 +963,8 @@ function updateSim() {
       plugins: { legend: { labels: { color: '#93908a', font: { size: 12 } } },
         tooltip: { callbacks: { label: c => ' ' + fmt(c.parsed.y) + ' €' } } },
       scales: {
-        x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#93908a' } },
-        y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#93908a', callback: v => fmt(v) + ' €' } }
+        x: { grid: { display: false }, ticks: { color: '#93908a', font: { size: 13, family: 'IBM Plex Mono' }, maxTicksLimit: 5 } },
+        y: { grid: { color: 'rgba(255,255,255,.06)' }, ticks: { color: '#93908a', font: { size: 13, family: 'IBM Plex Mono' }, maxTicksLimit: 3, callback: v => fmt(v) + ' €' } }
       }
     }
   });
@@ -1125,8 +1125,8 @@ async function loadEtfChart(period, btn) {
           tooltip: { callbacks: { label: c => ' ' + c.parsed.y.toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' €' } }
         },
         scales: {
-          x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#93908a', maxTicksLimit: 8 } },
-          y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#93908a',
+          x: { grid: { display: false }, ticks: { color: '#93908a', font: { size: 13, family: 'IBM Plex Mono' }, maxTicksLimit: 5 } },
+          y: { grid: { color: 'rgba(255,255,255,.06)' }, ticks: { color: '#93908a', font: { size: 13, family: 'IBM Plex Mono' }, maxTicksLimit: 4,
             callback: v => v.toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' €'
           }}
         }
