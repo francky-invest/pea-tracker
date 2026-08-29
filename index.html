@@ -87,7 +87,7 @@
     .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
     .section-title { font-size: 14px; font-weight: 600; }
     .grid-2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 40px; }
-    .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+    .row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; }
     .row:last-child { border-bottom: none; }
     .row .k { color: var(--text-sub); }
     .row .v { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
@@ -112,7 +112,7 @@
     .badge-gold { background: var(--gold-dim); color: var(--gold); }
     .badge-red { background: var(--red-dim); color: var(--red); }
 
-    .btn-icon { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px 8px; border-radius: 6px; transition: background .15s, color .15s; font-size: 14px; }
+    .btn-icon { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 3px 5px; border-radius: 6px; transition: background .15s, color .15s; display: inline-flex; align-items: center; }
     .btn-icon:hover { background: var(--red-dim); color: var(--red); }
 
     .form-stack { display: flex; flex-direction: column; gap: 16px; }
@@ -809,7 +809,7 @@ function renderPurchasesTable() {
   }
   const totalInvested = allPurchases.reduce((s, p) => s + (p.amount || 0), 0);
   const rows = [...allPurchases].sort((a, b) => b.date.localeCompare(a.date)).map(p =>
-    '<div class="lt-row"><span>' + fmtDate(p.date) + '</span><span>' + (p.account === 'CTO' ? 'CTO' : 'PEA') + '</span><span>' + fmt(p.amount) + ' €</span><span>' + (p.shares ? p.shares.toFixed(4) : '—') + '</span><span class="note">' + (p.note || '') + '</span><button class="btn-icon" onclick="event.stopPropagation();deletePurchase(\'' + p.id + '\')" title="Supprimer">🗑</button></div>'
+    '<div class="lt-row"><span>' + fmtDate(p.date) + '</span><span>' + (p.account === 'CTO' ? 'CTO' : 'PEA') + '</span><span>' + fmt(p.amount) + ' €</span><span>' + (p.shares ? p.shares.toFixed(4) : '—') + '</span><span class="note">' + (p.note || '') + '</span><button class="btn-icon" onclick="event.stopPropagation();deletePurchase(\'' + p.id + '\')" title="Supprimer"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg></button></div>'
   ).join('');
   el.innerHTML = '<div class="lt-wrap"><div class="ledger-table">' +
     '<div class="lt-row lt-head"><span>Date</span><span>Compte</span><span>Montant</span><span>Parts</span><span>Note</span><span></span></div>' +
@@ -926,7 +926,7 @@ function renderTirelire() {
   if (!container) return;
   if (!allVersements.length) { container.innerHTML = ''; return; }
   const rows = allVersements.map(v =>
-    '<div class="row"><span class="k">' + fmtDate(v.date) + ' · ' + (v.source || 'LCL') + (v.note ? ' · ' + v.note : '') + '</span><span class="v">' + fmt(v.amount) + ' € <button class="btn-icon" onclick="deleteVersement(\'' + v.id + '\')" title="Supprimer">🗑</button></span></div>'
+    '<div class="row"><span class="k">' + fmtDate(v.date) + ' · ' + (v.source || 'LCL') + (v.note ? ' · ' + v.note : '') + '</span><span class="v">' + fmt(v.amount) + ' € <button class="btn-icon" onclick="deleteVersement(\'' + v.id + '\')" title="Supprimer"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg></button></span></div>'
   ).join('');
   container.innerHTML = rows + '<div class="progress-note" style="margin-top:8px;">Total versé : ' + fmt(totalV) + ' €</div>';
 }
