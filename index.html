@@ -975,10 +975,10 @@ function updateSim() {
   const invested = budget * months;
   const gain     = fv - invested;
   const sharesN  = fv / price;
-  document.getElementById('rInvested').textContent = fmt(invested) + ' €';
-  document.getElementById('rFinal').textContent    = fmt(fv) + ' €';
-  document.getElementById('rGain').textContent     = '+' + fmt(gain) + ' €';
-  document.getElementById('rShares').textContent   = sharesN.toFixed(1);
+  document.getElementById('rInvested').textContent = fmt(invested);
+  document.getElementById('rFinal').textContent    = fmt(fv);
+  document.getElementById('rGain').textContent     = '+' + fmt(gain);
+  document.getElementById('rShares').textContent   = sharesN.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const labelsSim = []; const valInvested = []; const valFV = [];
   for (let m = 1; m <= months; m++) {
     if (m % 12 === 0 || m === months) {
