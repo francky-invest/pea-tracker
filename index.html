@@ -1144,7 +1144,7 @@ async function loadEtfChart(period, btn) {
 // UTILS
 function fmt(n) {
   if (typeof n !== 'number' || isNaN(n)) return '—';
-  return n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 function fmtDate(d) {
   if (!d) return '—';
