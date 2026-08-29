@@ -545,7 +545,7 @@ Chart.register({
     const last = points[points.length - 1];
     if (!last) return;
     const rawVal = chart.data.datasets[dsIndex].data[points.length - 1];
-    const label = opts.format ? opts.format(rawVal) : String(rawVal);
+    const label = opts.labelFn ? opts.labelFn(rawVal) : String(rawVal);
     const ctx = chart.ctx;
     ctx.save();
     ctx.font = "600 12px 'IBM Plex Mono', monospace";
@@ -774,7 +774,7 @@ function renderEvolutionChart() {
       layout: { padding: { top: 24 } },
       interaction: { intersect: false, mode: 'index' },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + (c.parsed.y >= 0 ? '+' : '') + fmt(c.parsed.y) + ' €' } },
-        endpointLabel: { color: lineColor, format: v => (v >= 0 ? '+' : '') + fmt(v) } },
+        endpointLabel: { color: lineColor, labelFn: v => (v >= 0 ? '+' : '') + fmt(v) } },
       scales: {
         x: { grid: { display: false }, ticks: { color: '#93908a', font: { size: 13, family: 'IBM Plex Mono' }, maxTicksLimit: 5 } },
         y: { grid: { color: 'rgba(255,255,255,.06)' }, ticks: { color: '#93908a', font: { size: 13, family: 'IBM Plex Mono' }, maxTicksLimit: 3, callback: v => fmt(v) + ' €' } }
@@ -1000,7 +1000,7 @@ function updateSim() {
       layout: { padding: { top: 24 } },
       plugins: { legend: { labels: { color: '#93908a', font: { size: 12 } } },
         tooltip: { callbacks: { label: c => ' ' + fmt(c.parsed.y) + ' €' } },
-        endpointLabel: { datasetIndex: 0, color: '#dcc48e', format: v => fmt(v) } },
+        endpointLabel: { datasetIndex: 0, color: '#dcc48e', labelFn: v => fmt(v) } },
       scales: {
         x: { grid: { display: false }, ticks: { color: '#93908a', font: { size: 13, family: 'IBM Plex Mono' }, maxTicksLimit: 5 } },
         y: { grid: { color: 'rgba(255,255,255,.06)' }, ticks: { color: '#93908a', font: { size: 13, family: 'IBM Plex Mono' }, maxTicksLimit: 3, callback: v => fmt(v) + ' €' } }
@@ -1164,7 +1164,7 @@ async function loadEtfChart(period, btn) {
         plugins: {
           legend: { display: false },
           tooltip: { callbacks: { label: c => ' ' + c.parsed.y.toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' €' } },
-          endpointLabel: { color: lineColor, format: v => v.toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }) }
+          endpointLabel: { color: lineColor, labelFn: v => v.toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }) }
         },
         scales: {
           x: { grid: { display: false }, ticks: { color: '#93908a', font: { size: 13, family: 'IBM Plex Mono' }, maxTicksLimit: 5 } },
