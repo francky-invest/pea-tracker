@@ -771,6 +771,7 @@ function renderEvolutionChart() {
       pointBackgroundColor: '#0c0d0f', pointBorderColor: lineColor, pointBorderWidth: 2,
       borderWidth: 2 }] },
     options: { responsive: true,
+      layout: { padding: { top: 24 } },
       interaction: { intersect: false, mode: 'index' },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + (c.parsed.y >= 0 ? '+' : '') + fmt(c.parsed.y) + ' €' } },
         endpointLabel: { color: lineColor, format: v => (v >= 0 ? '+' : '') + fmt(v) } },
@@ -996,6 +997,7 @@ function updateSim() {
         fill: false, tension: .3, pointRadius: 0, borderWidth: 1.5, borderDash: [4,3] }
     ]},
     options: { responsive: true,
+      layout: { padding: { top: 24 } },
       plugins: { legend: { labels: { color: '#93908a', font: { size: 12 } } },
         tooltip: { callbacks: { label: c => ' ' + fmt(c.parsed.y) + ' €' } },
         endpointLabel: { datasetIndex: 0, color: '#dcc48e', format: v => fmt(v) } },
@@ -1157,6 +1159,7 @@ async function loadEtfChart(period, btn) {
       }]},
       options: {
         responsive: true,
+        layout: { padding: { top: 24 } },
         interaction: { intersect: false, mode: 'index' },
         plugins: {
           legend: { display: false },
