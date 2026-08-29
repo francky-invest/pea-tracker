@@ -742,50 +742,26 @@ function updateDashboardLiveKpis(shares, total) {
   if (valCard) valCard.style.borderColor = pnl >= 0 ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.15)';
 }
 
-async function renderEvolutionChart() {
+function renderEvolutionChart() {
   const sorted = [...allPurchases].sort((a, b) => a.date.localeCompare(b.date));
   if (!sorted.length) { if (chartEvol) chartEvol.destroy(); return; }
 
-  let priceByDate = {};
-  try {
-    const url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(
-      'https://query1.finance.yahoo.com/v8/finance/chart/EPAB.PA?interval=1d&range=2y&includePrePost=false'
-    );
-    const json = await (await fetch(url, { signal: AbortSignal.timeout(7000) })).json();
-    const result = json.chart.result[0];
-    const timestamps = result.timestamp || [];
-    const closes = result.indicators.quote[0].close || [];
-    timestamps.forEach((t, i) => {
-      if (closes[i] != null) {
-        const d = new Date(t * 1000).toISOString().split('T')[0];
-        priceByDate[d] = closes[i];
-      }
-    });
-  } catch (e) { console.error('Historique prix indisponible :', e); }
-
-  const firstDate = sorted[0].date;
-  const todayStr = new Date().toISOString().split('T')[0];
-  const tradingDays = Object.keys(priceByDate).filter(d => d >= firstDate && d <= todayStr).sort();
-
+  // Pas de dépendance à un service tiers : à l'instant de chaque achat, valeur = montant investi,
+  // donc gain nul par définition (pas une valeur par défaut, un fait) — seul le point "aujourd'hui"
+  // utilise le cours live déjà récupéré de façon fiable ailleurs dans l'app.
   const labels = []; const gains = [];
-  let pi = 0, cumInvested = 0, cumShares = 0;
-  tradingDays.forEach(d => {
-    while (pi < sorted.length && sorted[pi].date <= d) {
-      cumInvested += sorted[pi].amount || 0;
-      cumShares += sorted[pi].shares || 0;
-      pi++;
-    }
-    labels.push(d);
-    gains.push(+((cumShares * priceByDate[d]) - cumInvested).toFixed(2));
+  let cumInvested = 0, cumShares = 0;
+  sorted.forEach(p => {
+    cumInvested += p.amount || 0;
+    cumShares += p.shares || 0;
+    labels.push(p.date);
+    gains.push(0);
   });
+
+  const todayStr = new Date().toISOString().split('T')[0];
   if (cachedLivePrice && labels[labels.length - 1] !== todayStr) {
-    while (pi < sorted.length) { cumInvested += sorted[pi].amount || 0; cumShares += sorted[pi].shares || 0; pi++; }
     labels.push(todayStr);
     gains.push(+((cumShares * cachedLivePrice) - cumInvested).toFixed(2));
-  }
-  if (!labels.length) {
-    let ci = 0, cs = 0;
-    sorted.forEach(p => { ci += p.amount || 0; cs += p.shares || 0; labels.push(p.date); gains.push(0); });
   }
 
   if (chartEvol) chartEvol.destroy();
